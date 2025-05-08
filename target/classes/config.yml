@@ -1,0 +1,445 @@
+# CustomMobs Configuration
+# ======================
+#
+# This configuration file controls all aspects of the CustomMobs plugin.
+
+# General settings
+settings:
+  # Enable debug mode for additional console output
+  debug: false
+  
+  # Global chance for a mob to be replaced with a custom mob when it spawns naturally
+  # 0.0 = 0%, 1.0 = 100%
+  spawn-chance: 0.1
+  
+  # Whether to announce when a custom mob spawns (only to players with custommobs.announce permission)
+  spawn-announcements: true
+  
+  # Whether to add a visual effect when a custom mob spawns
+  spawn-effect: true
+  
+  # Whether custom mobs should have their name displayed
+  show-names: true
+
+  # Requirements for loot drops
+  loot-requirements:
+    # Percentage of damage that must be dealt by a player to drop loot (0-100)
+    player-damage-percentage: 50.0
+
+    # Whether to count damage done by player allies (like wolves)
+    count-ally-damage: true
+
+
+# ===============================
+# Ability Configuration
+# ===============================
+# Define all possible abilities that can be assigned to custom mobs
+abilities:
+  # Fire Aura: Sets nearby entities on fire
+  fire-aura:
+    # Radius in blocks around the mob
+    radius: 3
+    # Damage per tick
+    damage: 1
+    # Ticks between damage (20 ticks = 1 second)
+    tick-rate: 20
+    # Duration of fire in seconds
+    duration: 5
+    
+  # Lightning Strike: Summons lightning on attack
+  lightning-strike:
+    # Chance to trigger on attack (0.0-1.0)
+    chance: 0.25
+    # Damage multiplier for the lightning
+    damage-multiplier: 1.0
+    
+  # Teleport: Randomly teleports when damaged
+  teleport:
+    # Chance to trigger when damaged
+    chance: 0.3
+    # Maximum teleport distance
+    max-distance: 10
+    # Cooldown in seconds
+    cooldown: 5
+    
+  # Leap: Jumps at the target
+  leap:
+    # Leap height multiplier
+    height: 1.5
+    # Forward velocity multiplier
+    forward: 1.2
+    # Cooldown in seconds
+    cooldown: 8
+    
+  # Summon Minions: Summons additional mobs when attacked
+  summon-minions:
+    # Type of mob to summon
+    mob-type: ZOMBIE
+    # Number of mobs to summon
+    count: 2
+    # Cooldown in seconds
+    cooldown: 30
+    # Health of summoned mobs
+    health: 10
+    
+  # Web Shot: Shoots webs that slow players
+  web-shot:
+    # Range in blocks
+    range: 15
+    # Slowness amplifier (0 = Slowness I)
+    slowness-level: 1
+    # Effect duration in seconds
+    duration: 5
+    # Cooldown in seconds
+    cooldown: 10
+    
+  # Invisibility: Becomes invisible when below certain health
+  invisibility:
+    # Health percentage threshold (0.0-1.0)
+    health-threshold: 0.3
+    # Duration in seconds
+    duration: 10
+    # Cooldown in seconds
+    cooldown: 60
+    
+  # Regeneration: Regenerates health over time
+  regeneration:
+    # Health amount to regenerate per tick
+    amount: 0.5
+    # Ticks between regeneration (20 ticks = 1 second)
+    tick-rate: 20
+    # Whether to show particles
+    particles: true
+
+# ===============================
+# Equipment Configuration
+# ===============================
+# Define custom equipment that can be used by mobs
+equipment:
+  # Weapons configuration
+  weapons:
+    flame-sword:
+      material: DIAMOND_SWORD
+      name: "&cFlame Sword"
+      lore:
+        - "&7A sword engulfed in flames"
+        - "&7Burns enemies on hit"
+      enchantments:
+        - type: FIRE_ASPECT
+          level: 2
+        - type: SHARPNESS
+          level: 5
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 10
+          operation: ADD_NUMBER
+      unbreakable: true
+      custom-model-data: 1001
+      glow: true
+      
+    frost-axe:
+      material: NETHERITE_AXE
+      name: "&bFrost Axe"
+      lore:
+        - "&7A freezing axe"
+        - "&7Slows enemies on hit"
+      enchantments:
+        - type: SHARPNESS
+          level: 4
+      nbt-data:
+        freeze-target: true
+        freeze-duration: 60
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 12
+          operation: ADD_NUMBER
+        - type: ATTACK_SPEED
+          amount: -0.2
+          operation: ADD_SCALAR
+      unbreakable: true
+      
+  # Armor configuration
+  armor:
+    infernal-helmet:
+      material: NETHERITE_HELMET
+      name: "&cInfernal Helmet"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 5
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+      unbreakable: true
+      
+    infernal-chestplate:
+      material: NETHERITE_CHESTPLATE
+      name: "&cInfernal Chestplate"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 10
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+      unbreakable: true
+      
+    infernal-leggings:
+      material: NETHERITE_LEGGINGS
+      name: "&cInfernal Leggings"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 8
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+      unbreakable: true
+      
+    infernal-boots:
+      material: NETHERITE_BOOTS
+      name: "&cInfernal Boots"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+        - type: FEATHER_FALLING
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 5
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+      unbreakable: true
+
+# ===============================
+# Custom Mob Configuration
+# ===============================
+# Define predefined custom mobs
+custom-mobs:
+  zombie-king:
+    # Base mob type
+    type: ZOMBIE
+    
+    # Display name
+    name: "&c&lZombie King"
+    
+    # Health (default is normal mob health)
+    health: 100
+    
+    # Damage multiplier (applies to the mob's base damage)
+    damage-multiplier: 2.0
+    
+    # Movement speed multiplier
+    speed-multiplier: 1.2
+    
+    # Additional mob attributes (optional)
+    attributes:
+      knockback-resistance: 0.8
+      follow-range: 40
+    
+    # Abilities (list from the abilities section)
+    abilities:
+      - fire-aura
+      - summon-minions
+      
+    # Equipment
+    equipment:
+      helmet: infernal-helmet
+      chestplate: infernal-chestplate
+      leggings: infernal-leggings
+      boots: infernal-boots
+      mainhand: flame-sword
+      
+    # Custom drops
+    drops:
+      - item: DIAMOND
+        chance: 0.7
+        amount: 1-3
+      - item: NETHERITE_INGOT
+        chance: 0.3
+        amount: 1
+      - item: EXPERIENCE
+        amount: 100
+        chance: 1.0
+        
+    # Spawn conditions
+    spawn-conditions:
+      # List of allowed dimensions
+      dimensions:
+        - OVERWORLD
+      
+      # Min/max distance from world spawn
+      min-distance: 500
+      max-distance: 2000
+      
+      # Min/max Y level
+      min-y: 40
+      max-y: 70
+      
+      # List of allowed biomes (empty = all biomes)
+      biomes:
+        - PLAINS
+        - FOREST
+        - DARK_FOREST
+        
+      # Time conditions (DAY, NIGHT, or both if not specified)
+      time:
+        - NIGHT
+  
+  skeleton-archer:
+    type: SKELETON
+    name: "&b&lFrost Archer"
+    health: 40
+    damage-multiplier: 1.5
+    speed-multiplier: 1.3
+    abilities:
+      - invisibility
+      - teleport
+    equipment:
+      helmet: infernal-helmet
+      mainhand: frost-axe
+    drops:
+      - item: ARROW
+        chance: 1.0
+        amount: 5-10
+      - item: BOW
+        chance: 0.5
+        enchantments:
+          - type: POWER
+            level: 3
+    spawn-conditions:
+      dimensions:
+        - OVERWORLD
+      min-y: 0
+      biomes:
+        - SNOWY_PLAINS
+        - ICE_SPIKES
+        - FROZEN_OCEAN
+
+# ===============================
+# Random Mob Configuration
+# ===============================
+# Configure settings for randomly generated custom mobs
+random-mobs:
+  # Enable random mob generation
+  enabled: true
+  
+  # Chance for a natural spawn to become a random custom mob (0.0-1.0)
+  chance: 0.05
+  
+  # What mob types can be enhanced with random abilities
+  allowed-types:
+    - ZOMBIE
+    - SKELETON
+    - SPIDER
+    - CREEPER
+    - ENDERMAN
+    
+  # Random abilities configuration
+  abilities:
+    # Min/max number of abilities to add
+    min: 1
+    max: 3
+    
+    # List of abilities that can be randomly applied
+    possible:
+      - fire-aura
+      - teleport
+      - leap
+      - lightning-strike
+      - regeneration
+  
+  # Random stats configuration
+  stats:
+    # Health multiplier range
+    health-multiplier: 1.5-3.0
+    
+    # Damage multiplier range
+    damage-multiplier: 1.2-2.0
+    
+    # Speed multiplier range
+    speed-multiplier: 1.0-1.5
+  
+  # Random equipment configuration
+  equipment:
+    # Chance to have a weapon (0.0-1.0)
+    weapon-chance: 0.7
+    
+    # Chance to have each armor piece (0.0-1.0)
+    helmet-chance: 0.5
+    chestplate-chance: 0.4
+    leggings-chance: 0.4
+    boots-chance: 0.5
+    
+    # List of possible equipment pieces
+    possible-weapons:
+      - flame-sword
+      - frost-axe
+    
+    possible-helmets:
+      - infernal-helmet
+    
+    possible-chestplates:
+      - infernal-chestplate
+    
+    possible-leggings:
+      - infernal-leggings
+    
+    possible-boots:
+      - infernal-boots
+  
+  # Random name generation
+  names:
+    prefixes:
+      - "Ancient"
+      - "Elite"
+      - "Powerful"
+      - "Mighty"
+      - "Legendary"
+      - "Enchanted"
+    
+    suffixes:
+      - "of Doom"
+      - "the Destroyer"
+      - "the Unstoppable"
+      - "the Cursed"
+      - "the Undying"
+  
+  # Random spawn conditions
+  spawn-conditions:
+    # Min/max distance from world spawn
+    min-distance: 100
+    max-distance: 5000
+    
+    # List of allowed dimensions
+    dimensions:
+      - OVERWORLD
+      - NETHER
+      - THE_END

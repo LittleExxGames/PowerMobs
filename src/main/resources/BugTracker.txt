@@ -1,0 +1,4 @@
+Spawned specials will target normal mobs.
+Spawned specials will target their own summons.
+Spawned minions will target their owner
+spawned minions will take damage from their masters fire ring.

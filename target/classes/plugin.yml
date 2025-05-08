@@ -1,0 +1,22 @@
+name: CustomMobs
+version: '1.0-SNAPSHOT'
+main: com.custommobs.CustomMobsPlugin
+api-version: '1.21'
+description: 'A plugin that adds custom mobs with special abilities, stats, armor, and weapons'
+authors: [YourName]
+depend: [NBTAPI]
+commands:
+  custommob:
+    description: Commands for managing custom mobs
+    usage: /<command> [spawn|list|reload]
+    permission: custommobs.command
+permissions:
+  custommobs.command:
+    description: Allows usage of the custommob command
+    default: op
+  custommobs.spawn:
+    description: Allows spawning custom mobs
+    default: op
+  custommobs.reload:
+    description: Allows reloading the config
+    default: op
