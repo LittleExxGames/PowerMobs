@@ -148,6 +148,13 @@ public class ConfigManager {
     public CustomMobConfig getCustomMob(String id) {
         return this.customMobs.get(id);
     }
+
+    /**
+     * Gets custom random mob configuration
+     *
+     * @return An unmodifiable map of the radom mob configuration
+     */
+    public RandomMobConfig getRandomMobConfig() {return this.randomMobConfig;}
     
     /**
      * Reloads the configuration from disk

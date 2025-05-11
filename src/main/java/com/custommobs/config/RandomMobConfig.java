@@ -4,10 +4,7 @@ import lombok.Getter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Configuration for randomly generated mobs
@@ -40,6 +37,11 @@ public class RandomMobConfig {
     private final List<String> namePrefixes;
     private final List<String> nameSuffixes;
     private final SpawnCondition spawnCondition;
+    private final int minDrops;
+    private final int maxDrops;
+    private final int dropWeight;
+    private final List<CustomMobConfig.CustomDropConfig> drops;
+
 
     /**
      * Creates a default random mob configuration
@@ -70,6 +72,11 @@ public class RandomMobConfig {
         this.namePrefixes = new ArrayList<>();
         this.nameSuffixes = new ArrayList<>();
         this.spawnCondition = new SpawnCondition();
+        this.minDrops = 0;
+        this.maxDrops = 2;
+        this.dropWeight = 100;
+        this.drops = new ArrayList<>();
+
     }
 
     /**
@@ -160,7 +167,32 @@ public class RandomMobConfig {
             this.possibleLeggings = new ArrayList<>();
             this.possibleBoots = new ArrayList<>();
         }
-        
+
+        // Drop count range (can be a range like "0-2" or a single number)
+        String amountObj = section.getString("drop-count");
+        if (amountObj != null) {
+            String[] parts = ((String) amountObj).split("-");
+            this.minDrops = Integer.parseInt(parts[0]);
+            this.maxDrops = parts.length > 1 ? Integer.parseInt(parts[1]) : this.minDrops;
+        } else {
+            this.minDrops = 0;
+            this.maxDrops = 2;
+        }
+
+        // Drop weight
+        this.dropWeight = section.getInt("drop-weight", 100);
+
+
+        // Drops
+        this.drops = new ArrayList<>();
+        List<Map<?, ?>> dropsList = section.getMapList("drops");
+        for (Map<?, ?> dropMap : dropsList) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castedDropMap = (Map<String, Object>) dropMap;
+            CustomMobConfig.CustomDropConfig drop = new CustomMobConfig.CustomDropConfig(castedDropMap);
+            this.drops.add(drop);
+        }
+
         // Load name generation
         ConfigurationSection namesSection = section.getConfigurationSection("names");
         if (namesSection != null) {
@@ -170,7 +202,7 @@ public class RandomMobConfig {
             this.namePrefixes = new ArrayList<>();
             this.nameSuffixes = new ArrayList<>();
         }
-        
+
         // Load spawn conditions
         ConfigurationSection conditionSection = section.getConfigurationSection("spawn-conditions");
         if (conditionSection != null) {
@@ -178,8 +210,13 @@ public class RandomMobConfig {
         } else {
             this.spawnCondition = new SpawnCondition();
         }
+
     }
-    
+
+    public int getActualDropCount() {
+        return com.custommobs.util.WeightedRandom.getWeightedRandom(minDrops, maxDrops, dropWeight);
+    }
+
     /**
      * Checks if a mob type is allowed for random enhancements
      * 

@@ -3,6 +3,7 @@ package com.custommobs.config;
 import lombok.Getter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
+import com.custommobs.util.WeightedRandom;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +25,9 @@ public class CustomMobConfig implements ICustomMobConfig {
     private final Map<String, Double> attributes;
     private final List<String> abilities;
     private final Map<String, String> equipment;
+    private final int minDrops;
+    private final int maxDrops;
+    private final int dropWeight;
     private final List<CustomDropConfig> drops;
     private final SpawnCondition spawnCondition;
 
@@ -74,7 +78,21 @@ public class CustomMobConfig implements ICustomMobConfig {
                 this.equipment.put(slot, equipSection.getString(slot));
             }
         }
-        
+
+        // Drop count range (can be a range like "0-2" or a single number)
+        String amountObj = section.getString("drop-count");
+        if (amountObj != null) {
+            String[] parts = ((String) amountObj).split("-");
+            this.minDrops = Integer.parseInt(parts[0]);
+            this.maxDrops = parts.length > 1 ? Integer.parseInt(parts[1]) : this.minDrops;
+        } else {
+            this.minDrops = 0;
+            this.maxDrops = 2;
+        }
+
+        // Drop weight
+        this.dropWeight = section.getInt("drop-weight", 100);
+
         // Drops
         this.drops = new ArrayList<>();
         List<Map<?, ?>> dropsList = section.getMapList("drops");
@@ -93,6 +111,15 @@ public class CustomMobConfig implements ICustomMobConfig {
             this.spawnCondition = new SpawnCondition(); // Default conditions
         }
     }
+
+    /**
+     * Gets the actual drop count using the weighted distribution
+     *
+     * @return The selected amount
+     */
+    public int getActualDropCount() {
+        return WeightedRandom.getWeightedRandom(minDrops, maxDrops, dropWeight);
+    }
     
     /**
      * Configuration for a custom drop
@@ -103,6 +130,7 @@ public class CustomMobConfig implements ICustomMobConfig {
         private final double chance;
         private final int minAmount;
         private final int maxAmount;
+        private final int amountWeight;
         private final List<EnchantmentConfig> enchantments;
         
         /**
@@ -110,7 +138,7 @@ public class CustomMobConfig implements ICustomMobConfig {
          * 
          * @param map The configuration map
          */
-        @SuppressWarnings("unchecked")
+
         public CustomDropConfig(Map<String, Object> map) {
             this.item = (String) map.get("item");
             this.chance = ((Number) map.getOrDefault("chance", 1.0)).doubleValue();
@@ -125,35 +153,95 @@ public class CustomMobConfig implements ICustomMobConfig {
                 this.minAmount = ((Number) amountObj).intValue();
                 this.maxAmount = this.minAmount;
             }
-            
+
+            // Parse amount weight
+            this.amountWeight = map.containsKey("amount-weight") ?
+                    ((Number) map.get("amount-weight")).intValue() : 100;
+
             // Parse enchantments
             this.enchantments = new ArrayList<>();
             List<Map<String, Object>> enchList = (List<Map<String, Object>>) map.getOrDefault("enchantments", new ArrayList<>());
             for (Map<String, Object> enchMap : enchList) {
                 String type = (String) enchMap.get("type");
-                int level = ((Number) enchMap.getOrDefault("level", 1)).intValue();
-                this.enchantments.add(new EnchantmentConfig(type, level));
+
+                // Parse level (can be a range like "1-3" or a single number)
+                Object levelObj = enchMap.getOrDefault("level", 1);
+                int minLevel, maxLevel;
+                if (levelObj instanceof String) {
+                    String[] parts = ((String) levelObj).split("-");
+                    minLevel = Integer.parseInt(parts[0]);
+                    maxLevel = parts.length > 1 ? Integer.parseInt(parts[1]) : minLevel;
+                } else {
+                    minLevel = ((Number) levelObj).intValue();
+                    maxLevel = minLevel;
+                }
+
+                // Parse weight
+                int weight = enchMap.containsKey("weight") ?
+                        ((Number) enchMap.get("weight")).intValue() : 100;
+
+                this.enchantments.add(new EnchantmentConfig(type, minLevel, maxLevel, weight));
+
             }
         }
+
+        /**
+         * Gets the actual amount for this drop using the weighted distribution
+         *
+         * @return The selected amount
+         */
+        public int getActualAmount() {
+            return WeightedRandom.getWeightedRandom(minAmount, maxAmount, amountWeight);
+        }
+
     }
-    
+
     /**
      * Configuration for an enchantment
      */
     @Getter
     public static class EnchantmentConfig {
         private final String type;
-        private final int level;
-        
+        private final int minLevel;
+        private final int maxLevel;
+        private final int weight;
+
         /**
          * Creates a new enchantment configuration
-         * 
+         *
          * @param type The enchantment type
-         * @param level The enchantment level
+         * @param level The enchantment level or min level if range is used
          */
         public EnchantmentConfig(String type, int level) {
             this.type = type;
-            this.level = level;
+            this.minLevel = level;
+            this.maxLevel = level;
+            this.weight = 100; // Default weight (equal distribution)
+        }
+
+        /**
+         * Creates a new enchantment configuration with level range and weight
+         *
+         * @param type The enchantment type
+         * @param minLevel The minimum enchantment level
+         * @param maxLevel The maximum enchantment level
+         * @param weight The weight value (1-200)
+         */
+        public EnchantmentConfig(String type, int minLevel, int maxLevel, int weight) {
+            this.type = type;
+            this.minLevel = minLevel;
+            this.maxLevel = maxLevel;
+            this.weight = weight;
+        }
+
+        /**
+         * Gets the actual level for this enchantment using the weighted distribution
+         *
+         * @return The selected enchantment level
+         */
+        public int getActualLevel() {
+            return WeightedRandom.getWeightedRandom(minLevel, maxLevel, weight);
         }
     }
+
 }

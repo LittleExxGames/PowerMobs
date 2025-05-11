@@ -39,19 +39,17 @@ public class DamageTrackingListener implements Listener {
     }
 
     /**
-     * Handles entity death events to clean up tracking data
+     * Handles entity death events related to Custom Mobs
      */
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        LivingEntity entity = event.getEntity();
+//        LivingEntity entity = event.getEntity();
+//
+//        // Check if the entity is a custom mob
+//        CustomMob customMob = CustomMob.getFromEntity(plugin, entity);
+//        if (customMob == null) {
+//            return;
+//        }
 
-        // Check if the entity is a custom mob
-        CustomMob customMob = CustomMob.getFromEntity(plugin, entity);
-        if (customMob == null) {
-            return;
-        }
-
-        // Clean up tracking data
-        plugin.getDamageTracker().cleanupMob(customMob.getEntityUuid());
     }
 }

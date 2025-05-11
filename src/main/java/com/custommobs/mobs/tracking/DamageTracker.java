@@ -65,6 +65,7 @@ public class DamageTracker {
         // Add damage to the player's total
         damageMap.merge(player.getUniqueId(), damage, Double::sum);
         plugin.debug("Registered " + damage + " damage to mob " + mobUuid + " from " + player.getName());
+        plugin.debug("After adding damage, total damage map for mob " + mobUuid + ": " + damageMap);
     }
 
     /**
@@ -79,6 +80,7 @@ public class DamageTracker {
 
         // If we're not tracking this mob, return false
         if (!mobDamageTracker.containsKey(mobUuid)) {
+            plugin.debug("Mob " + mobUuid + " is not being tracked, so it cannot be qualified for drops");
             return false;
         }
 

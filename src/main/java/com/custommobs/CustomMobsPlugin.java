@@ -1,8 +1,10 @@
 package com.custommobs;
 
+import com.custommobs.UI.GUIManager;
 import com.custommobs.commands.CustomMobCommand;
 import com.custommobs.config.ConfigManager;
 import com.custommobs.config.CustomMobDropHandler;
+import com.custommobs.events.ConfigGUIListener;
 import com.custommobs.events.DamageTrackingListener;
 import com.custommobs.mobs.tracking.DamageTracker;
 import com.custommobs.events.MobDeathListener;
@@ -44,6 +46,9 @@ public class CustomMobsPlugin extends JavaPlugin {
     @Getter
     private EquipmentManager equipmentManager;
 
+    @Getter
+    private GUIManager guiManager;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -52,18 +57,20 @@ public class CustomMobsPlugin extends JavaPlugin {
         this.configManager.loadConfig();
         this.damageTracker = new DamageTracker(this);
         this.dropHandler = new CustomMobDropHandler(this);
-        this.dropHandler = new CustomMobDropHandler(this);
 
         // Initialize managers
         this.abilityManager = new AbilityManager(this);
         this.equipmentManager = new EquipmentManager(this);
         this.customMobManager = new CustomMobManager(this);
+        this.guiManager = new GUIManager(this);
         
         // Register events
         getServer().getPluginManager().registerEvents(new DamageTrackingListener(this), this);
         getServer().getPluginManager().registerEvents(new MobSpawnListener(this), this);
         getServer().getPluginManager().registerEvents(new MobDeathListener(this), this);
-        
+        getServer().getPluginManager().registerEvents(new ConfigGUIListener(this), this); // Add this line
+
+
         // Register commands
         PluginCommand command = Objects.requireNonNull(getCommand("custommob"));
         CustomMobCommand commandExecutor = new CustomMobCommand(this);

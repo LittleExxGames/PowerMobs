@@ -13,6 +13,8 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -32,12 +34,32 @@ public class CustomMobDropHandler {
         this.plugin = plugin;
     }
 
+    private static List<CustomMobConfig.CustomDropConfig> getDrops(List<CustomMobConfig.CustomDropConfig> drops, int dropLimit) {
+        List<CustomMobConfig.CustomDropConfig> reservoir = new ArrayList<>();
+        Random random = new Random();
+
+        for (int i = 0; i < drops.size(); i++) {
+            CustomMobConfig.CustomDropConfig drop = drops.get(i);
+            if (random.nextDouble() < drop.getChance()) {
+                if (reservoir.size() < dropLimit) {
+                    reservoir.add(drop);
+                } else {
+                    int j = random.nextInt(i + 1);
+                    if (j < dropLimit) {
+                        reservoir.set(j, drop);
+                    }
+                }
+            }
+        }
+        return reservoir;
+    }
+
     /**
      * Processes drops from a custom mob
      *
      * @param customMob The custom mob
-     * @param killer The player who killed the mob (may be null)
-     * @param location The death location
+     * @param killer    The player who killed the mob (may be null)
+     * @param location  The death location
      */
     public void processDrops(CustomMob customMob, Player killer, Location location) {
 
@@ -50,47 +72,59 @@ public class CustomMobDropHandler {
         }
 
         if (customMob.isRandom()) {
-            handleRandomDrops(location, customMob.getEntity());
+            RandomMobConfig randomConfig = plugin.getConfigManager().getRandomMobConfig();
+            handleRandomDrops(location, randomConfig, killer);
             return;
         }
 
         CustomMobConfig config = plugin.getConfigManager().getCustomMob(customMob.getId());
         if (config == null) {
-            plugin.debug("no config for mob " + customMob.getEntityUuid() + " - skipping drops");
+            plugin.debug("No config for mob " + customMob.getEntityUuid() + " - skipping drops");
             return;
         }
 
         handleDrops(location, config, killer);
     }
+
     /**
      * Handles custom drops for a predefined mob
      *
      * @param location The death location
-     * @param config The mob configuration
+     * @param config   The mob configuration
      */
     private void handleDrops(Location location, CustomMobConfig config, Player killer) {
         if (location.getWorld() == null) {
             return;
         }
 
+        int dropCount = config.getActualDropCount();
+        int dropsAt = 0;
+        this.plugin.debug("Handling " + dropCount + " drops for mob " + config.getId());
+        List<CustomMobConfig.CustomDropConfig> drops = new ArrayList<>(config.getDrops());
+        ;
+        Collections.shuffle(drops);
+
         // Process drops
-        for (CustomMobConfig.CustomDropConfig drop : config.getDrops()) {
+        //for (CustomMobConfig.CustomDropConfig drop : config.getDrops()) {
+        for (CustomMobConfig.CustomDropConfig drop : drops) {
             // Check chance
             if (random.nextDouble() >= drop.getChance()) {
                 continue;
             }
 
-            // Determine amount
-            int amount = drop.getMinAmount();
-            if (drop.getMaxAmount() > drop.getMinAmount()) {
-                amount += random.nextInt(drop.getMaxAmount() - drop.getMinAmount() + 1);
-            }
+            // Determine amount using weighted random
+            int amount = drop.getActualAmount();
 
             // Special case for experience
             if (drop.getItem().equalsIgnoreCase("EXPERIENCE")) {
                 killer.giveExp(amount);
                 continue;
             }
+
+            if (dropsAt >= dropCount) {
+                continue;
+            }
+            dropsAt++;
 
             try {
                 // Create item
@@ -99,15 +133,35 @@ public class CustomMobDropHandler {
 
                 // Add enchantments
                 if (!drop.getEnchantments().isEmpty()) {
-                    ItemMeta meta = item.getItemMeta();
-                    for (CustomMobConfig.EnchantmentConfig enchant : drop.getEnchantments()) {
-                        Enchantment enchantment = Enchantment.getByName(enchant.getType().toUpperCase());
-                        if (enchantment != null) {
-                            meta.addEnchant(enchantment, enchant.getLevel(), true);
+                    if (material == Material.ENCHANTED_BOOK) {
+                        EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+                        if (meta != null) {
+                            for (CustomMobConfig.EnchantmentConfig enchant : drop.getEnchantments()) {
+                                Enchantment enchantment = Enchantment.getByName(enchant.getType().toUpperCase());
+                                if (enchantment != null) {
+                                    // Use the actual level from the weighted calculation
+                                    int level = enchant.getActualLevel();
+                                    meta.addStoredEnchant(enchantment, level, true);
+                                }
+                            }
+                            item.setItemMeta(meta);
+                        }
+                    } else {
+                        ItemMeta meta = item.getItemMeta();
+                        if (meta != null) {
+                            for (CustomMobConfig.EnchantmentConfig enchant : drop.getEnchantments()) {
+                                Enchantment enchantment = Enchantment.getByName(enchant.getType().toUpperCase());
+                                if (enchantment != null) {
+                                    // Use the actual level from the weighted calculation
+                                    int level = enchant.getActualLevel();
+                                    meta.addEnchant(enchantment, level, true);
+                                }
+                            }
+                            item.setItemMeta(meta);
                         }
                     }
-                    item.setItemMeta(meta);
                 }
+
 
                 // Drop the item
                 location.getWorld().dropItemNaturally(location, item);
@@ -123,102 +177,94 @@ public class CustomMobDropHandler {
      * Handles drops for a random mob
      *
      * @param location The death location
-     * @param entity The entity
      */
-    private void handleRandomDrops(Location location, LivingEntity entity) {
+    private void handleRandomDrops(Location location, RandomMobConfig config, Player killer) {
         if (location.getWorld() == null) {
             return;
         }
 
-        // Generate some random drops based on the entity type
-        ArrayList<ItemStack> drops = new ArrayList<>();
+        //List<ItemStack> drops = new ArrayList<>();
+        int dropCount = config.getActualDropCount();
+        int dropsAt = 0;
+        this.plugin.debug("Handling " + dropCount + " drops for random mob.");
+        // Shuffle the possible drops list to randomize selection
+        List<CustomMobConfig.CustomDropConfig> drops = new ArrayList<>(config.getDrops());
+        Collections.shuffle(drops);
 
-        // 50% chance for 1-3 of the mob's normal drops
-        if (Math.random() < 0.5) {
-            int count = 1 + this.random.nextInt(3);
-            for (int i = 0; i < count; i++) {
-                switch (entity.getType()) {
-                    case ZOMBIE:
-                        drops.add(new ItemStack(Material.ROTTEN_FLESH, 1 + this.random.nextInt(3)));
-                        break;
-                    case SKELETON:
-                        drops.add(new ItemStack(Material.BONE, 1 + this.random.nextInt(3)));
-                        if (Math.random() < 0.3) {
-                            drops.add(new ItemStack(Material.ARROW, 1 + this.random.nextInt(5)));
+        for (CustomMobConfig.CustomDropConfig drop : drops) {
+            // Check chance
+            if (random.nextDouble() >= drop.getChance()) {
+                continue;
+            }
+
+            // Determine amount using weighted random
+            int amount = drop.getActualAmount();
+
+            // Special case for experience
+            if (drop.getItem().equalsIgnoreCase("EXPERIENCE")) {
+                killer.giveExp(amount);
+                continue;
+            }
+
+            if (dropsAt >= dropCount) {
+                continue;
+            }
+            dropsAt++;
+
+            try {
+                // Create item
+                Material material = Material.valueOf(drop.getItem().toUpperCase());
+                ItemStack item = new ItemStack(material, amount);
+
+                // Add enchantments
+                if (!drop.getEnchantments().isEmpty()) {
+                    if (material == Material.ENCHANTED_BOOK) {
+                        EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+                        if (meta != null) {
+                            for (CustomMobConfig.EnchantmentConfig enchant : drop.getEnchantments()) {
+                                Enchantment enchantment = Enchantment.getByName(enchant.getType().toUpperCase());
+                                if (enchantment != null) {
+                                    int level = enchant.getActualLevel();
+                                    meta.addStoredEnchant(enchantment, level, true);
+                                }
+                            }
+                            item.setItemMeta(meta);
                         }
-                        break;
-                    case SPIDER:
-                        drops.add(new ItemStack(Material.STRING, 1 + this.random.nextInt(3)));
-                        if (Math.random() < 0.3) {
-                            drops.add(new ItemStack(Material.SPIDER_EYE, 1));
+                    } else {
+                        ItemMeta meta = item.getItemMeta();
+                        if (meta != null) {
+                            for (CustomMobConfig.EnchantmentConfig enchant : drop.getEnchantments()) {
+                                Enchantment enchantment = Enchantment.getByName(enchant.getType().toUpperCase());
+                                if (enchantment != null) {
+                                    int level = enchant.getActualLevel();
+                                    meta.addEnchant(enchantment, level, true);
+                                }
+                            }
+                            item.setItemMeta(meta);
                         }
-                        break;
-                    case CREEPER:
-                        if (Math.random() < 0.5) {
-                            drops.add(new ItemStack(Material.GUNPOWDER, 1 + this.random.nextInt(3)));
-                        }
-                        break;
-                    case ENDERMAN:
-                        if (Math.random() < 0.4) {
-                            drops.add(new ItemStack(Material.ENDER_PEARL, 1));
-                        }
-                        break;
-                    default:
-                        // No custom drops
-                        break;
+                    }
                 }
+
+                // Drop the item
+                location.getWorld().dropItemNaturally(location, item);
+                plugin.debug("Dropped " + amount + " " + material + " for player " + killer.getName());
+
+
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid material in random mob drop: " + drop.getItem());
             }
         }
 
-        // 20% chance for a rare item
-        if (Math.random() < 0.2) {
-            double roll = Math.random();
-            if (roll < 0.4) {
-                // Common rare items (40%)
-                Material[] materials = {
-                    Material.IRON_INGOT, Material.GOLD_INGOT, Material.COAL, Material.REDSTONE, Material.LAPIS_LAZULI
-                };
-                drops.add(new ItemStack(materials[this.random.nextInt(materials.length)], 1 + this.random.nextInt(3)));
-            } else if (roll < 0.7) {
-                // Uncommon rare items (30%)
-                Material[] materials = {
-                    Material.EMERALD, Material.DIAMOND, Material.EXPERIENCE_BOTTLE, Material.GOLDEN_APPLE
-                };
-                drops.add(new ItemStack(materials[this.random.nextInt(materials.length)], 1));
-            } else if (roll < 0.9) {
-                // Rare items (20%)
-                Material[] materials = {
-                    Material.NETHERITE_SCRAP, Material.TOTEM_OF_UNDYING, Material.ENCHANTED_GOLDEN_APPLE
-                };
-                drops.add(new ItemStack(materials[this.random.nextInt(materials.length)], 1));
-            } else {
-                // Extremely rare (10%)
-                // Create an enchanted book with a random enchantment
-                ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
-                EnchantmentStorageMeta meta = (EnchantmentStorageMeta) book.getItemMeta();
-                if (meta != null) {
-                    // Get a random enchantment
-                    Enchantment[] enchantments = Enchantment.values();
-                    Enchantment enchantment = enchantments[this.random.nextInt(enchantments.length)];
-                    int level = 1 + this.random.nextInt(enchantment.getMaxLevel());
-
-                    meta.addStoredEnchant(enchantment, level, true);
-                    book.setItemMeta(meta);
-                }
-                drops.add(book);
-            }
-        }
-
-        // Drop experience (random 5-20)
-        int exp = 5 + this.random.nextInt(16);
-        location.getWorld().spawn(location, ExperienceOrb.class, orb -> {
-            orb.setExperience(exp);
-        });
-
-        // Drop the items
-        for (ItemStack item : drops) {
-            location.getWorld().dropItemNaturally(location, item);
-        }
+//        // Drop experience (random 5-20) for random mobs
+//        int exp = 5 + this.random.nextInt(16);
+//        location.getWorld().spawn(location, ExperienceOrb.class, orb -> {
+//            orb.setExperience(exp);
+//        });
+//
+//        // Drop the items
+//        for (ItemStack item : drops) {
+//            location.getWorld().dropItemNaturally(location, item);
+//        }
     }
 }
 

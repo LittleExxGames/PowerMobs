@@ -4,10 +4,8 @@ import com.custommobs.CustomMobsPlugin;
 import com.custommobs.config.CustomMobConfig;
 import com.custommobs.mobs.CustomMob;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -49,6 +47,8 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 return handleReload(sender, args);
             case "remove":
                 return handleRemove(sender, args);
+            case "config":
+                return handleConfig(sender, args);
             case "help":
                 sendHelp(sender);
                 return true;
@@ -360,6 +360,34 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
                 return true;
         }
     }
+
+
+    /**
+     * Handles the command to open the inventory GUI config.
+     *
+     * @param sender The command sender
+     * @param args The command arguments
+     * @return True if the command was handled
+     */
+    private boolean handleConfig(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("custommobs.config")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            return true;
+        }
+
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "This command can only be used by players.");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        this.plugin.getGuiManager().openMainMenu(player);
+
+        //ConfigGUI configGUI = new ConfigGUI(this.plugin);
+        //player.openInventory(configGUI.getInventory());
+        return true;
+    }
+
     
     /**
      * Sends help information to a command sender
@@ -373,6 +401,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GOLD + "/custommob info <mob-id>" + ChatColor.GRAY + " - Show information about a mob type");
         sender.sendMessage(ChatColor.GOLD + "/custommob reload" + ChatColor.GRAY + " - Reload the configuration");
         sender.sendMessage(ChatColor.GOLD + "/custommob remove <all|radius|type> [radius|type]" + ChatColor.GRAY + " - Remove custom mobs");
+        sender.sendMessage(ChatColor.GOLD + "/custommob config" + ChatColor.GRAY + " - Open the configuration GUI");
         sender.sendMessage(ChatColor.GOLD + "/custommob help" + ChatColor.GRAY + " - Show this help message");
     }
     
@@ -385,6 +414,7 @@ public class CustomMobCommand implements CommandExecutor, TabCompleter {
             completions.add("info");
             completions.add("reload");
             completions.add("remove");
+            completions.add("config");
             completions.add("help");
             
             return filterCompletions(completions, args[0]);
