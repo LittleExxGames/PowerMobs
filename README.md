@@ -1,6 +1,6 @@
 # PowerMobs
 
-PowerMobs is a Paper/Bukkit plugin for creating **enhanced custom mobs** with configurable 
+PowerMobs is a Paper/Spigot plugin for creating **enhanced custom mobs** with configurable 
 stats, abilities, equipment, drops, and spawn rules—plus **randomly generated “PowerMobs”** for variety.
 It is to help create vanilla+ content that can be used in a normal survival playthrough without getting in the way.
 
