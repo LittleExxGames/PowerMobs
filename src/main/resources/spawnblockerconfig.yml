@@ -1,0 +1,42 @@
+# ===============================
+# SPAWN BLOCKERS CONFIGURATION
+# ===============================
+# This file configures spawn blocking mechanics that prevent power mobs from spawning
+# in specified areas around certain blocks or custom items.
+#
+# Each spawn blocker can be either:
+# - VANILLA: Uses existing Minecraft blocks (like torches, beacons, etc.)
+# - CUSTOM: Uses custom items that can be crafted/given to players
+
+spawn-blockers:
+  beacon:
+    enabled: true
+    type: VANILLA                     # VANILLA or CUSTOM
+    material: BEACON                  # Minecraft material name
+    chunk-range: 1                    # Range in chunks (1 = current chunk only, 2 = 3x3 area, etc.)
+    name: "&eSpawn Blocker Beacon"    # Display name (for custom items)
+    description: "Prevents power mob spawning in this chunk"
+
+  halting-soul-torch:
+    enabled: true
+    type: CUSTOM
+    material: SOUL_TORCH
+    chunk-range: 2                   # 3x3 chunk area
+    name: "&bMob Repelling Soul Torch"
+    description: "Prevents power mob spawning in a 3x3 chunk area"
+    custom-id: "halting-soul-torch" # Custom item ID for integration
+    lore:
+      - "&7Prevents power mob spawning"
+      - "&7Range: 3x3 chunks"
+
+  ward-stone:
+    enabled: true
+    type: CUSTOM
+    material: OBSIDIAN
+    chunk-range: 3
+    name: "&5Ward Stone"
+    description: "Creates a large protected area"
+    custom-id: "ward-stone"
+    lore:
+      - "&7Ancient stone of protection"
+      - "&7Range: 5x5 chunks"

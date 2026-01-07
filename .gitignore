@@ -1,0 +1,13 @@
+node_modules
+.env
+.idea/
+target/
+*.log
+*.tmp
+lib/
+qodana.yaml
+.github/copilot-instructions.md
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

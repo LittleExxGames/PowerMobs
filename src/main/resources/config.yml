@@ -1,0 +1,316 @@
+# ======================
+# PowerMobs Configuration
+# ======================
+#
+# This configuration file controls all aspects of the PowerMobs plugin.
+# Random Mob configuration is also editable in the in game UI.
+# General settings are only changeable here.
+
+# General settings
+settings:
+  # Enable debug mode for additional console output
+  debug: false
+  debugMobSpawning: true
+  debugUI: true
+  debugMobCombat: true
+  debugDrops: true
+  debugCleanup: true
+  debugItemEffects: true
+  debugSpawnBlockers: true
+  debugSaveAndLoad: true
+  
+  # Global chance for a mob to be replaced with a power mob when it spawns naturally
+  # 0.0 = 0%, 1.0 = 100%
+  spawn-chance: 0.01
+  
+  # Whether to announce when a power mob spawns (only to players with powermobs.announce permission)
+  spawn-announcements: true
+  
+  # Whether to add a visual effect when a power mob spawns
+  spawn-effect: true
+  
+  # Whether power mobs should have their name displayed
+  show-names: true
+
+  # Spawn delay settings
+  spawn-timers:
+    enabled: true
+    location-based: false
+    # When location-based is enabled, the distance setting allows another PowerMob of the same type to
+    # spawn after the given distance has been reached, even if the original spawn location is still on cooldown.
+    distance: 300
+    # For if items can cause PowerMobs to spawn:
+    item-bypass: true
+    # Spawners can spawn PowerMobs:
+    spawner-bypass: false
+
+  # Requirements for loot drops
+  loot-requirements:
+    # Percentage of damage that must be dealt by a player to drop loot (0-100)
+    player-damage-percentage: 50.0
+
+    # Whether to count damage done by player allies (like wolves)
+    count-ally-damage: true
+
+# ===============================
+# Random Mob Configuration
+# ===============================
+# Configure settings for randomly generated power mobs
+random-mobs:
+  enabled: true
+  allowed-types:
+    - CREEPER
+    - SKELETON
+    - SPIDER
+    - ZOMBIE
+    - ENDERMAN
+  possible-abilities:
+    - fire-aura
+    - teleport
+    - leap
+    - lightning-strike
+    - regeneration
+  ability-range: 1-3
+  abilities-weight: 100
+  health-multiplier: 1.5-3.0
+  health-weight: 100
+  damage-multiplier: 1.1-1.5
+  damage-weight: 100
+  speed-multiplier: 1.0-1.5
+  speed-weight: 100
+  possible-equipment:
+    possible-weapons:
+      - item: BOW-1
+        enchantments:
+          - type: SHARPNESS
+            level: 5-15
+            weight: 100
+          - type: POWER
+            level: 1-5
+            weight: 100
+          - type: FLAME
+            level: 1-2
+            weight: 100
+      - item: DIAMOND_AXE-1
+      - item: DIAMOND_PICKAXE-1
+      - item: DIAMOND_HOE-1
+      - item: GOLDEN_SWORD-2
+        enchantments:
+          - type: UNBREAKING
+            level: 10
+            weight: 100
+          - type: SHARPNESS
+            level: 3
+            weight: 100
+      - item: IRON_SWORD-1
+      - item: IRON_PICKAXE-1
+      - item: IRON_AXE-1
+      - item: NETHERITE_SWORD-1
+      - item: NETHERITE_AXE-1
+      - item: WOODEN_SWORD-1
+        enchantments:
+          - type: FIRE_ASPECT
+            level: 5
+            weight: 100
+          - type: SHARPNESS
+            level: 2
+            weight: 100
+      - item: shadow-blade
+      - item: DIAMOND_SWORD-1
+        enchantments:
+          - type: SHARPNESS
+            level: 1-10
+            weight: 50
+    possible-offhands:
+      - item: magnifying-glass
+      - item: SHIELD-1
+        enchantments:
+          - type: PROTECTION
+            level: 1-10
+            weight: 100
+    possible-helmets:
+      - item: NETHERITE_HELMET-1
+      - item: IRON_HELMET-1
+      - item: GOLDEN_HELMET-1
+      - item: DIAMOND_HELMET-1
+      - item: LEATHER_HELMET-1
+    possible-chestplates:
+      - item: LEATHER_CHESTPLATE-1
+      - item: NETHERITE_CHESTPLATE-1
+      - item: IRON_CHESTPLATE-1
+      - item: GOLDEN_CHESTPLATE-1
+      - item: DIAMOND_CHESTPLATE-1
+    possible-leggings:
+      - item: DIAMOND_LEGGINGS-1
+      - item: GOLDEN_LEGGINGS-1
+      - item: LEATHER_LEGGINGS-1
+      - item: NETHERITE_LEGGINGS-1
+      - item: IRON_LEGGINGS-1
+    possible-boots:
+      - item: IRON_BOOTS-1
+      - item: GOLDEN_BOOTS-1
+      - item: DIAMOND_BOOTS-1
+      - item: NETHERITE_BOOTS-1
+      - item: LEATHER_BOOTS-1
+  equipment-chance:
+    weapon-chance: 0.7
+    offhand-chance: 0.5
+    helmet-chance: 0.5
+    chestplate-chance: 0.4
+    leggings-chance: 0.4
+    boots-chance: 0.5
+  prefixes:
+    - Ancient
+    - Elite
+    - Powerful
+    - Mighty
+    - Legendary
+    - Enchanted
+    - Strong
+    - Mega
+    - Ultimate
+    - §4Dark Lord
+  suffixes:
+    - of Doom
+    - the Destroyer
+    - the Unstoppable
+    - the Cursed
+    - the Undying
+  glowing: true
+  glow-time: '100'
+  drop-count: 0-1
+  drop-weight: 100
+  exp-chance: 1.0
+  exp-amount: 10-15
+  exp-weight: 100
+  drops:
+    - item: DIAMOND
+      chance: 0.3
+      amount: 1-3
+      amount-weight: 100
+    - item: EMERALD
+      chance: 0.5
+      amount: 1-5
+      amount-weight: 100
+    - item: NETHERITE_SCRAP
+      chance: 0.1
+      amount: 1
+      amount-weight: 100
+    - item: ACACIA_SLAB-1
+      chance: 1.0
+      amount: 1
+      amount-weight: 100
+    - item: AMETHYST_CLUSTER-1
+      chance: 1.0
+      amount: 1
+      amount-weight: 5
+    - item: ENCHANTED_BOOK-1
+      chance: 0.2
+      amount: 1
+      amount-weight: 100
+      enchantments:
+        - type: SHARPNESS
+          level: 3-5
+          weight: 100
+    - item: BOW-1
+      chance: 1.0
+      amount: 1
+      amount-weight: 100
+      enchantments:
+        - type: SHARPNESS
+          level: 10
+          weight: 100
+  spawn-conditions:
+    spawn-chance: 0.05
+    spawn-delay: 500-1200
+    spawn-delay-weight: 100
+    replace-type-only: true
+    despawn-time: '1800'
+    dimensions:
+      - OVERWORLD
+      - NETHER
+      - THE_END
+    min-x: infinite
+    max-x: infinite
+    min-z: infinite
+    max-z: infinite
+    min-y: infinite
+    max-y: infinite
+    biome-groups:
+      Mountain:
+        - WINDSWEPT_HILLS
+        - WINDSWEPT_FOREST
+        - WINDSWEPT_GRAVELLY_HILLS
+        - STONY_PEAKS
+        - JAGGED_PEAKS
+        - FROZEN_PEAKS
+        - SNOWY_SLOPES
+      Cold:
+        - SNOWY_PLAINS
+        - ICE_SPIKES
+        - SNOWY_TAIGA
+        - GROVE
+        - SNOWY_BEACH
+        - FROZEN_RIVER
+      Jungle:
+        - JUNGLE
+        - SPARSE_JUNGLE
+        - BAMBOO_JUNGLE
+      Nether:
+        - NETHER_WASTES
+        - SOUL_SAND_VALLEY
+        - CRIMSON_FOREST
+        - WARPED_FOREST
+        - BASALT_DELTAS
+      Misc:
+        - BEACH
+        - STONY_SHORE
+        - RIVER
+        - MUSHROOM_FIELDS
+        - THE_VOID
+      Forest:
+        - FOREST
+        - BIRCH_FOREST
+        - DARK_FOREST
+        - FLOWER_FOREST
+        - TAIGA
+        - OLD_GROWTH_BIRCH_FOREST
+        - OLD_GROWTH_PINE_TAIGA
+        - OLD_GROWTH_SPRUCE_TAIGA
+        - CHERRY_GROVE
+        - PALE_GARDEN
+      Ocean:
+        - OCEAN
+        - DEEP_OCEAN
+        - WARM_OCEAN
+        - LUKEWARM_OCEAN
+        - COLD_OCEAN
+        - DEEP_COLD_OCEAN
+        - DEEP_LUKEWARM_OCEAN
+        - FROZEN_OCEAN
+        - DEEP_FROZEN_OCEAN
+      Swamp:
+        - SWAMP
+        - MANGROVE_SWAMP
+      Plains:
+        - PLAINS
+        - SUNFLOWER_PLAINS
+        - MEADOW
+        - SAVANNA
+        - SAVANNA_PLATEAU
+        - WINDSWEPT_SAVANNA
+      End:
+        - THE_END
+        - END_BARRENS
+        - END_HIGHLANDS
+        - END_MIDLANDS
+        - SMALL_END_ISLANDS
+      Desert:
+        - DESERT
+        - BADLANDS
+        - ERODED_BADLANDS
+        - WOODED_BADLANDS
+      Underground:
+        - DEEP_DARK
+        - DRIPSTONE_CAVES
+        - LUSH_CAVES

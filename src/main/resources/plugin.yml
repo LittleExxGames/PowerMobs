@@ -1,0 +1,87 @@
+name: PowerMobs
+version: '${project.version}'
+main: com.powermobs.PowerMobsPlugin
+api-version: '1.21'
+description: '${project.description}'
+authors: [LittleExx]
+depend: []
+commands:
+  powermob:
+    description: Commands for managing power mobs
+    usage: /<command> [spawn|list|info|timers|give|reload|remove|config|spawnblocker|delete|help]
+    permission: powermobs.command
+
+permissions:
+  powermobs.command:
+    description: Base permission for /powermob
+    default: op
+    children:
+      powermobs.spawn: true
+      powermobs.list: true
+      powermobs.info: true
+      powermobs.timers: true
+      powermobs.getitem: true
+      powermobs.reload: true
+      powermobs.remove: true
+      powermobs.config: true
+      powermobs.spawnblocker.give: true
+      powermobs.spawnblocker.reload: true
+      powermobs.spawnblocker.list: true
+      powermobs.spawnblocker.info: true
+      powermobs.delete: true
+
+  powermobs.spawn:
+    description: Allows spawning power mobs
+    default: op
+
+  powermobs.list:
+    description: Allows listing mob types and active mobs
+    default: op
+
+  powermobs.info:
+    description: Allows viewing mob config info
+    default: op
+
+  powermobs.timers:
+    description: Allows viewing and resetting spawn timers
+    default: op
+
+  powermobs.getitem:
+    description: Allows /powermob give
+    default: op
+
+  powermobs.reload:
+    description: Allows reloading the config
+    default: op
+
+  powermobs.remove:
+    description: Allows removing power mobs (all/radius/type)
+    default: op
+
+  powermobs.config:
+    description: Allows opening the configuration GUI
+    default: op
+
+  powermobs.spawnblocker.give:
+    description: Allows giving spawn blocker items
+    default: op
+
+  powermobs.spawnblocker.reload:
+    description: Allows reloading spawn blocker config
+    default: op
+
+  powermobs.spawnblocker.list:
+    description: Allows listing active spawn blockers
+    default: op
+
+  powermobs.spawnblocker.info:
+    description: Allows viewing spawn blocker definitions
+    default: op
+
+  powermobs.delete:
+    description: Allows deleting mob types from config
+    default: op
+
+  powermobs.announce:
+    description: Allows receiving PowerMobs spawn announcements
+    default: true

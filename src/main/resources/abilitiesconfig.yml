@@ -1,0 +1,82 @@
+# ===============================
+# Ability Configuration
+# ===============================
+# Define all possible abilities that can be assigned to power mobs
+abilities:
+  # Fire Aura: Sets nearby entities on fire
+  fire-aura:
+    # Radius in blocks around the mob
+    radius: 3
+    # Damage per tick
+    damage: 1
+    # Ticks between damage (20 ticks = 1 second)
+    tick-rate: 20
+    # Duration of fire in seconds
+    duration: 5
+
+  # Lightning Strike: Summons lightning on attack
+  lightning-strike:
+    # Chance to trigger on attack (0.0-1.0)
+    chance: 0.25
+    # Damage multiplier for the lightning
+    damage-multiplier: 1.0
+
+  # Teleport: Randomly teleports when damaged
+  teleport:
+    # Chance to trigger when damaged
+    chance: 0.3
+    # Maximum teleport distance
+    max-away-distance: 10
+    # Cooldown in seconds
+    cooldown: 5
+    # Time until the mob will instead teleport to the player after not being damaged
+    inactivity-time: 30
+
+  # Leap: Jumps at the target
+  leap:
+    # Leap height multiplier
+    height: 1.5
+    # Forward velocity multiplier
+    forward: 1.2
+    # Cooldown in seconds
+    cooldown: 8
+
+  # Summon Minions: Summons additional mobs when attacked
+  summon-minions:
+    # Type of mob to summon
+    mob-type: ZOMBIE
+    # Number of mobs to summon
+    count: 2
+    # Cooldown in seconds
+    cooldown: 30
+    # Health of summoned mobs
+    health: 10
+
+  # Web Shot: Shoots webs that slow players
+  web-shot:
+    # Range in blocks
+    range: 15
+    # Slowness amplifier (0 = Slowness I)
+    slowness-level: 1
+    # Effect duration in seconds
+    duration: 5
+    # Cooldown in seconds
+    cooldown: 10
+
+  # Invisibility: Becomes invisible when below certain health
+  invisibility:
+    # Health percentage threshold (0.0-1.0)
+    health-threshold: 0.3
+    # Duration in seconds
+    duration: 10
+    # Cooldown in seconds
+    cooldown: 60
+
+  # Regeneration: Regenerates health over time
+  regeneration:
+    # Health amount to regenerate per tick
+    amount: 0.5
+    # Ticks between regeneration (20 ticks = 1 second)
+    tick-rate: 20
+    # Whether to show particles
+    particles: true

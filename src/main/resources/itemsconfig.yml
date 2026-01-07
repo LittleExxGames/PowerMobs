@@ -1,0 +1,1337 @@
+# ===============================
+# ITEMSCONFIG.YML DOCUMENTATION
+# ===============================
+# This file defines all custom equipment (weapons, armor, unique items) that can be
+# used by power mobs and players. Items are organized into three main categories.
+#
+# ===============================
+# ROOT STRUCTURE
+# ===============================
+# equipment:                     # Map - Root container for all equipment
+#   weapons:                     # Map - Contains all custom weapon definitions
+#   armor:                       # Map - Contains all custom armor piece definitions
+#   uniques:                     # Map - Contains all custom unique item definitions for non-equipment
+#
+# ===============================
+# ITEM DEFINITION STRUCTURE
+# ===============================
+# Each item (weapon, armor, or unique) can have the following properties:
+#
+# # Basic Item Properties
+# material:                      # String (REQUIRED) - Minecraft material name (e.g., DIAMOND_SWORD, IRON_HELMET)
+#                                # Valid values: Any Minecraft Material enum value
+#                                # See: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html
+#
+# name:                          # String (OPTIONAL) - Display name with color codes
+#                                # Format: "&colorcode Text" (e.g., "&cRed Sword", "&bBlue Helmet")
+#                                # Color codes: &0-&9, &a-&f, &k-&r
+#                                # Default: Material's default name
+#
+# lore:                          # List of Strings (OPTIONAL) - Item description lines
+#                                # Format: List of strings with color code support
+#                                # Example: ["&7First line", "&8Second line"]
+#                                # Default: Empty list
+#
+# unbreakable:                   # Boolean (OPTIONAL) - Makes item never break
+#                                # Valid values: true, false
+#                                # Default: false
+#
+# custom-model-data:             # Integer (OPTIONAL) - Custom model data for resource packs
+#                                # Valid values: Any positive integer
+#                                # Default: Not set (uses default model)
+#
+# glow:                          # Boolean (OPTIONAL) - Adds enchantment glow effect without showing enchantments
+#                                # Valid values: true, false
+#                                # Default: false
+#                                # Note: Adds hidden Unbreaking I enchantment for glow effect
+#
+# # Enchantments System
+# enchantments:                  # List of Maps (OPTIONAL) - Item enchantments
+#                                # Format: List where each entry has:
+#   - type:                      # String (REQUIRED) - Enchantment name (e.g., SHARPNESS, PROTECTION)
+#                                # Valid values: Any Minecraft Enchantment key name (lowercase)
+#                                # See: https://minecraft.wiki/w/Enchantment
+#     level:                     # Integer (REQUIRED) - Enchantment level (can exceed normal limits)
+#                                # Valid values: 1-32767 (higher than normal limits allowed)
+#                                # Default: 1 if not specified
+#
+# # Attribute System
+# attributes:                    # List of Maps (OPTIONAL) - Item attribute modifiers
+#                                # Format: List where each entry has:
+#   - type:                      # String (REQUIRED) - Attribute name (e.g., ATTACK_DAMAGE, ARMOR)
+#                                # Valid values: Any Minecraft Attribute key name (lowercase)
+#                                # Common: attack_damage, attack_speed, armor, armor_toughness, max_health
+#     amount:                    # Number (REQUIRED) - Attribute modification amount
+#                                # Valid values: Any decimal number (can be negative)
+#     operation:                 # String (OPTIONAL) - How the attribute is applied
+#                                # Valid values: ADD_NUMBER, ADD_SCALAR, MULTIPLY_SCALAR_1
+#                                # Default: ADD_NUMBER
+#                                # ADD_NUMBER: Adds flat amount (replaces base value)
+#                                # ADD_SCALAR: Adds percentage of base value
+#                                # MULTIPLY_SCALAR_1: Multiplies total value
+#
+#     slots:                     # List[String] (OPTIONAL) - Where this attribute is active
+#                                # Examples (case-insensitive):
+#                                #   - "any"         # default if omitted; applies in any slot
+#                                #   - "mainhand"   # only when in main hand
+#                                #   - "off_hand"   # only when in off hand
+#                                #   - "armor"      # all armor slots (helmet, chest, legs, boots)
+#                                #   - "head"       # helmet slot only
+#                                #   - "chest"
+#                                #   - "legs"
+#                                #   - "feet"
+#                                #
+#                                # If multiple slots are listed, one AttributeModifier is created
+#                                # per slot group. If slots is not specified, "any" is assumed.
+#
+# # Custom Effects System
+# effects:                       # Map (OPTIONAL) - Custom item effects that trigger on various events
+#                                # Format: Map where each key is an effect ID and value defines the effect
+#   effect-id:                   # String - Unique identifier for this effect
+#     trigger:                   # String (REQUIRED) - When this effect activates
+#                                # Valid values: HOLDING, EQUIPPED, HOTBAR, INVENTORY,
+#                                #               CONSUME, ON_HIT, ON_HIT_TAKEN,
+#                                #               ON_KILL, RIGHT_CLICK,
+#                                #               SHOOT_PROJECTILE, PROJECTILE_HIT, BLOCK_BREAK
+#                                # HOLDING: While item is in main or off hand (checked every second)
+#                                # EQUIPPED: While item is worn in an armor slot
+#                                # HOTBAR: While item is anywhere in hotbar slots 0-8
+#                                # INVENTORY: While item is in the main inventory (storage contents)
+#                                # CONSUME: When item is consumed (food/potions)
+#                                # ON_HIT: When attacking with this item
+#                                # ON_HIT_TAKEN: When damaged while wearing/holding this item
+#                                # ON_KILL: When killing an entity with this item
+#                                # RIGHT_CLICK: When right-clicking with this item
+#                                # SHOOT_PROJECTILE: When this item shoots a projectile
+#                                # PROJECTILE_HIT: When a projectile tagged from this item hits something
+#                                # BLOCK_BREAK: When breaking a block with this item
+#
+#     effect:                    # String (REQUIRED) - Type of effect to apply
+#                                # Valid values: POTION, AOE_POTION, PURE_DAMAGE, IGNITE,
+#                                #               KNOCKBACK, IMMUNITY, HEAL, PARTICLES, SOUND 
+#                                # POTION: Applies potion effect to target
+#                                # AOE_POTION: Applies potion effect in area around target
+#                                # PURE_DAMAGE: Adds pure damage that ingores all damage reducing effects
+#                                # IGNITE: Sets target on fire
+#                                # KNOCKBACK: Knocks target away from source
+#                                # IMMUNITY: Grants immunity/cleansing to certain damage/effects
+#                                # HEAL: Instantly heals target
+#                                # PARTICLES: Spawns particle effects
+#                                # SOUND: Plays sound effects
+#
+#     target:                    # String (REQUIRED) - Who receives the effect
+#                                # Valid values: SELF, VICTIM, ATTACKER
+#                                # SELF: The entity holding/wearing the item
+#                                # VICTIM: The entity being attacked/affected
+#                                # ATTACKER: The entity performing the action
+#
+#     chance:                    # Number (OPTIONAL) - Probability effect will trigger
+#                                # Valid values: 0.0-1.0 (0% to 100%)
+#                                # Default: 1.0 (100% chance)
+#
+#     cooldown:                  # Integer (OPTIONAL) - Seconds before effect can trigger again
+#                                # Valid values: 0-3600 (0 = no cooldown)
+#                                # Default: 0
+#
+#     # Effect-Specific Properties (use only those relevant to your effect type):
+#
+#     potion-type:               # String - Potion effect type (for POTION/AOE_POTION effects)
+#                                # Valid values: Any PotionEffectType name (e.g., SPEED, POISON, STRENGTH)
+#                                # Default: SPEED
+#
+#     potion-level:              # Integer - Potion effect amplifier (for POTION/AOE_POTION effects)
+#                                # Valid values: 1-255 (1 = Level I, 2 = Level II, etc.)
+#                                # Default: 1
+#
+#     potion-duration:           # Integer - Potion effect duration in ticks (for POTION/AOE_POTION effects)
+#                                # Valid values: 1-32767 (20 ticks = 1 second)
+#                                # Default: 60 ticks (3 seconds)
+#
+#     damage:                    # Number - Extra damage amount (for PURE_DAMAGE effect)
+#                                # Valid values: Any positive decimal number
+#                                # Default: 1.0
+#
+#     healing:                   # Number - Healing amount in hearts (for HEAL effects)
+#                                # Valid values: Any positive decimal number (1.0 = half heart)
+#                                # Default: 1.0
+#
+#     fire-ticks:                # Integer - Fire duration in ticks (for IGNITE effect)
+#                                # Valid values: 1-32767 (20 ticks = 1 second of fire)
+#                                # Default: 60 ticks (3 seconds)
+#
+#     knockback-strength:        # Number - Knockback force multiplier (for KNOCKBACK effect)
+#                                # Valid values: Any positive decimal number
+#                                # Default: 1.0
+#                                # Info: Negates vanilla knockback and uneffected by knockback resistance that's not over 100%.
+#
+#     radius:                    # Number - Effect radius in blocks (for AOE/AREA effects)
+#                                # Valid values: Any positive decimal number
+#                                # Default: 5.0
+#
+#     particle-type:             # String - Particle type to spawn (for PARTICLES effect)
+#                                # Valid values: Any Particle enum name (e.g., HEART, FLAME, SMOKE_NORMAL)
+#                                # Default: HEART
+#                                # See: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Particle.html
+#
+#     sound-type:                # String - Sound to play (for SOUND effect)
+#                                # Valid values: Any Sound enum name (e.g., ENTITY_EXPERIENCE_ORB_PICKUP)
+#                                # Default: ENTITY_EXPERIENCE_ORB_PICKUP
+#                                # See: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
+#
+#     sound-volume:              # Number - Sound volume (for SOUND effect)
+#                                # Valid values: 0.0-10.0 (1.0 = normal volume)
+#                                # Default: 1.0
+#
+#     sound-pitch:               # Number - Sound pitch (for SOUND effect)
+#                                # Valid values: 0.5-2.0 (1.0 = normal pitch)
+#                                # Default: 1.0
+#
+#     # IMMUNITY effect options (clears/prevents effects on the target when triggered)
+#     immune-potion-types:       # List[String] - Potion effects to clear/prevent.
+#                                # Format supports level threshold: TYPE or TYPE:LEVEL (LEVEL is 1-based)
+#                                # Examples:
+#                                #   - POISON          # immune to any level of POISON
+#                                #   - WITHER:1        # immune to WITHER I (and below)
+#                                #   - SLOWNESS:2      # immune to SLOW I-II, allows III+
+#                                # If cooldown: 0, immunity is treated as persistent while the item
+#                                # is held/equipped/hotbar/inventory (depending on trigger).
+#                                # Persistent immunities also prevent new effects and some damage.
+#
+#     clear-fire:                # Boolean - If true, extinguishes fire on the target (and prevents when cooldown: 0)
+#                                # Default: false
+#                          
+#     negate-fall-damage:        # Boolean - If true, negates fall damage when triggered (and always prevents when cooldown: 0)
+#                                # Default: false
+#                                # Note: Only works with IMMUNITY effect trigger
+#
+#     # AOE Configuration (Area of Effect targeting options)
+#     aoe-include-caster:        # Boolean (OPTIONAL) - Include the entity triggering the effect
+#                                # Valid values: true, false
+#                                # Default: false
+#
+#     aoe-include-allies:        # Boolean (OPTIONAL) - Include allied entities (e.g., tamed animals)
+#                                # Valid values: true, false
+#                                # Default: true
+#
+#     aoe-include-players:       # Boolean (OPTIONAL) - Include other players (not the caster)
+#                                # Valid values: true, false
+#                                # Default: true
+#
+#     aoe-include-others:        # Boolean (OPTIONAL) - Include non-ally, non-player entities
+#                                # Valid values: true, false
+#                                # Default: true
+
+#
+# ===============================
+# NOTES AND BEST PRACTICES
+# ===============================
+# - Item IDs (like "flame-sword") must be unique across ALL categories
+# - Material names are case-insensitive but UPPERCASE is recommended
+# - Color codes in names/lore: Use & followed by color code (0-9, a-f, k-r)
+# - Enchantment levels can exceed vanilla limits for custom items
+# - Attribute operations: Most common is ADD_NUMBER for flat bonuses
+# - Effects system provides more flexibility than hardcoded NBT behaviors
+# - Test items in-game after configuration changes
+# - Keep backup copies before making major changes
+# ===============================
+#
+# ===============================
+# EXAMPLE OPTION LOCATIONS
+# ===============================
+#
+# ROOT:
+# equipment:
+#   weapons:                 # All weapon-type items
+#   armor:                   # All armor pieces
+#   uniques:                 # All misc/unique items (trinkets, charms, etc.)
+#
+# EACH ITEM (UNDER weapons / armor / uniques):
+#   <item-id>:
+#     material:              # REQUIRED
+#     name:                  # OPTIONAL
+#     lore:                  # OPTIONAL (list)
+#       - "..."
+#     unbreakable:           # OPTIONAL
+#     custom-model-data:     # OPTIONAL
+#     glow:                  # OPTIONAL
+#
+#     enchantments:          # OPTIONAL (list)
+#       - type:              # REQUIRED
+#         level:             # REQUIRED
+#
+#     attributes:            # OPTIONAL (list)
+#       - type:              # REQUIRED
+#         amount:            # REQUIRED
+#         operation:         # OPTIONAL
+#         # slot:            # OPTIONAL (only if you want to pin an attribute to a slot)
+#
+#     effects:               # OPTIONAL (map)
+#       <effect-id>:
+#         trigger:           # REQUIRED
+#         effect:            # REQUIRED
+#         target:            # REQUIRED
+#         chance:            # OPTIONAL
+#         cooldown:          # OPTIONAL
+#
+#         # ─────────────────────────────
+#         # POTION / AOE_POTION OPTIONS
+#         # ─────────────────────────────
+#         # effect: POTION or AOE_POTION
+#         potion-type:       # e.g. SPEED, POISON, STRENGTH
+#         potion-level:      # 1 = level I, 2 = level II, ...
+#         potion-duration:   # seconds (plugin converts to ticks)
+#
+#         # AOE_POTION ONLY
+#         radius:            # Centered on hit/caster depending on trigger
+#         aoe-include-caster:
+#         aoe-include-allies:
+#         aoe-include-players:
+#         aoe-include-others:
+#
+#         # ─────────────────────────────
+#         # PURE_DAMAGE OPTIONS
+#         # ─────────────────────────────
+#         # effect: PURE_DAMAGE
+#         damage:            # Pure damage amount
+#
+#         # ─────────────────────────────
+#         # IGNITE OPTIONS
+#         # ─────────────────────────────
+#         # effect: IGNITE
+#         fire-ticks:        # Duration target burns
+#
+#         # ─────────────────────────────
+#         # KNOCKBACK OPTIONS
+#         # ─────────────────────────────
+#         # effect: KNOCKBACK
+#         knockback-strength:
+#
+#         # ─────────────────────────────
+#         # HEAL OPTIONS
+#         # ─────────────────────────────
+#         # effect: HEAL
+#         healing:           # Amount in hearts (1.0 = half heart)
+#
+#         # ─────────────────────────────
+#         # PARTICLES OPTIONS
+#         # ─────────────────────────────
+#         # effect: PARTICLES
+#         particle-type:     # e.g. FLAME, HEART, SOUL_FIRE_FLAME
+#
+#         # ─────────────────────────────
+#         # SOUND OPTIONS
+#         # ─────────────────────────────
+#         # effect: SOUND
+#         sound-type:        # e.g. ENTITY_VILLAGER_AMBIENT
+#         sound-volume:      # 0.0–10.0
+#         sound-pitch:       # 0.5–2.0
+#
+#         # ─────────────────────────────
+#         # IMMUNITY OPTIONS
+#         # ─────────────────────────────
+#         # effect: IMMUNITY
+#         immune-potion-types:   # List[String], TYPE or TYPE:LEVEL
+#           - POISON
+#           - WITHER:1
+#         clear-fire:            # true = clear & (if cooldown: 0) prevent fire
+#         negate-fall-damage:    # true = (if cooldown: 0) prevent fall damage
+#
+#         # Notes:
+#         # - IMMUNITY with cooldown: 0 + target: SELF becomes persistent while the
+#         #   item is HELD / EQUIPPED / in HOTBAR / INVENTORY (depending on trigger).
+#         # - AOE_* filters only apply to AOE_POTION effects.
+
+
+
+
+# ===============================
+# Equipment Configuration
+# ===============================
+# Define custom equipment that can be used and dropped by mobs
+equipment:
+  # Weapons configuration
+  weapons:
+    void-scythe:
+      material: NETHERITE_HOE
+      name: "&5Void Scythe"
+      lore:
+        - "&7Harvests the essence of foes"
+      enchantments:
+        - type: SHARPNESS
+          level: 6
+        - type: SWEEPING_EDGE
+          level: 4
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 4
+          operation: ADD_NUMBER
+      glow: true
+      effects:
+        void-drain:
+          trigger: ON_HIT
+          effect: HEAL
+          target: ATTACKER
+          chance: 0.30
+          healing: 1.0
+        void-weaken:
+          trigger: ON_HIT
+          effect: POTION
+          target: VICTIM
+          potion-type: WEAKNESS
+          potion-duration: 60
+          potion-level: 1
+          chance: 0.25
+        soul-particles:
+          trigger: ON_HIT
+          effect: PARTICLES
+          particle-type: SOUL_FIRE_FLAME
+          target: VICTIM
+          chance: 0.1
+    
+    thunder-mace:
+      material: MACE
+      name: "&eThunder Mace"
+      lore:
+        - "&7Crackling with unstable charge"
+      enchantments:
+        - type: KNOCKBACK
+          level: 3
+      effects:
+        shock-wave:
+          trigger: ON_HIT
+          effect: KNOCKBACK
+          target: VICTIM
+          chance: 1.0
+          knockback-strength: 2.4
+        shock-blast:
+          trigger: ON_HIT
+          effect: KNOCKBACK
+          target: SELF
+          chance: 1.0
+          knockback-strength: 2.4
+
+    hunters-bow:
+      material: BOW
+      name: "&dHunters Bow"
+      lore:
+        - "&7The lost bow of a great hunter"
+      enchantments:
+        - type: POWER
+          level: 3
+        - type: INFINITY
+          level: 1
+
+    shadow-blade:
+      material: IRON_SWORD
+      name: "&8Shadow Blade"
+      lore:
+        - "&7Strikes from obscurity"
+      enchantments:
+        - type: SHARPNESS
+          level: 3
+        - type: UNBREAKING
+          level: 5
+      attributes:
+        - type: ATTACK_SPEED
+          amount: 0.20
+          operation: ADD_SCALAR
+      effects:
+        shadow-slip:
+          trigger: ON_HIT
+          effect: POTION
+          target: ATTACKER
+          potion-type: INVISIBILITY
+          potion-duration: 3
+          potion-level: 1
+          chance: 0.35
+
+    crystal-longbow:
+      material: BOW
+      name: "&dCrystal Longbow"
+      lore:
+        - "&7With great power comes a cost..."
+      enchantments:
+        - type: POWER
+          level: 12
+        - type: VANISHING_CURSE
+          level: 1
+      effects:
+        crystalline-arrow:
+          trigger: SHOOT_PROJECTILE
+          effect: PARTICLES
+          target: SELF
+          particle-type: END_ROD
+          chance: 1.0
+        backlash:
+          trigger: SHOOT_PROJECTILE
+          effect: POTION
+          target: SELF
+          potion-type: HARM
+          potion-duration: 20
+          potion-level: 4
+          chance: 1.0  
+
+    warriors-might:
+      material: IRON_SWORD
+      name: "&dWarrior's Might"
+      lore:
+        - "&7A fallen warrior's blade, once used against the Ender Dragon"
+      enchantments:
+        - type: SHARPNESS
+          level: 2
+        - type: UNBREAKING
+          level: 1
+
+    axing-a-question:
+      material: WOODEN_AXE
+      name: "&6Axing A Question"
+      lore:
+        - "&7Used only by those lost in thought"
+      unbreakable: true
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 0
+          operation: ADD_NUMBER
+        - type: ATTACK_SPEED
+          amount: -0.1
+          operation: ADD_SCALAR    
+      effects:
+        ponder:
+          trigger: ON_HIT
+          effect: SOUND
+          target: VICTIM
+          sound-type: ENTITY_VILLAGER_AMBIENT
+          sound-volume: 1.0
+          sound-pitch: 1.0
+          chance: 1.0 
+
+    flame-sword:
+      material: DIAMOND_SWORD
+      name: "&cFlame Sword"
+      lore:
+        - "&7A sword engulfed in flames"
+        - "&7All that will be left of your enemies are ashes"
+      enchantments:
+        - type: FIRE_ASPECT
+          level: 2
+        - type: SHARPNESS
+          level: 5
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 9
+          operation: ADD_NUMBER
+      unbreakable: true
+      custom-model-data: 1001
+      glow: true
+      effects:
+        flame-particles:
+          trigger: HOLDING
+          effect: PARTICLES
+          target: SELF
+          particle-type: FLAME
+          chance: 0.1
+
+
+    frost-axe:
+      material: NETHERITE_AXE
+      name: "&bFrost Axe"
+      lore:
+        - "&7A freezing axe"
+        - "&7Slows enemies on hit"
+      enchantments:
+        - type: SHARPNESS
+          level: 4
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 12
+          operation: ADD_NUMBER
+        - type: ATTACK_SPEED
+          amount: -0.2
+          operation: ADD_SCALAR
+      unbreakable: true
+      effects:
+        freeze-strike:
+          trigger: ON_HIT
+          effect: POTION
+          potion-type: SLOWNESS
+          target: VICTIM
+          chance: 1.0
+          potion-duration: 15
+          potion-level: 1
+
+    storm-spear:
+      material: TRIDENT
+      name: "&bStorm Striker"
+      lore:
+        - "&7A spear that calls the storm"
+      enchantments:
+        - type: LOYALTY
+          level: 3
+        - type: IMPALING
+          level: 4
+      effects:
+        thunder-crash:
+          trigger: ON_HIT
+          effect: POTION
+          target: VICTIM
+          potion-type: SLOWNESS
+          potion-duration: 15
+          potion-level: 2
+          chance: 0.35
+        storm-mark:
+          trigger: ON_HIT
+          effect: PARTICLES
+          target: VICTIM
+          particle-type: ELECTRIC_SPARK
+          chance: 1.0
+
+    hunters-crossbow:
+      material: CROSSBOW
+      name: "&aHunter's Crossbow"
+      lore:
+        - "&7Favored by patient marksmen"
+      enchantments:
+        - type: QUICK_CHARGE
+          level: 2
+        - type: PIERCING
+          level: 3
+      effects:
+        crippling-shot:
+          trigger: PROJECTILE_HIT
+          effect: POTION
+          target: VICTIM
+          potion-type: SLOWNESS
+          potion-duration: 60
+          potion-level: 2
+          chance: 0.6
+        flare-mark:
+          trigger: PROJECTILE_HIT
+          effect: PARTICLES
+          target: VICTIM
+          particle-type: CRIT
+          chance: 1.0    
+
+    gale-daggers:
+      material: IRON_SWORD
+      name: "&fGale Dagger"
+      lore:
+        - "&7Light blades that ride the wind"
+      attributes:
+        - type: ATTACK_SPEED
+          amount: 2
+          operation: ADD_SCALAR
+        - type: ATTACK_DAMAGE
+          amount: 2
+          operation: ADD_NUMBER
+      effects:
+        wind-step:
+          trigger: ON_HIT
+          effect: POTION
+          target: ATTACKER
+          potion-type: SPEED
+          potion-duration: 10
+          potion-level: 1
+          chance: 0.3  
+
+    steelwood-blade:
+      material: WOODEN_SWORD
+      name: "&2Steelwood Blade"
+      lore:
+        - "&7Carved from extinct steelwood trees"
+        - "&7Lighter and stronger than normal wood"
+      enchantments:
+        - type: SHARPNESS
+          level: 2
+        - type: UNBREAKING
+          level: 15
+
+    pure-gem-dagger:
+      material: DIAMOND_SWORD
+      name: "&6Pure Gem Dagger"
+      lore:
+        - "&7An ancient gem dagger tipped with a tempered nether star"
+        - "&7Imbued with the power to penetrate any armor"
+      enchantments:
+        - type: SMITE
+          level: 3
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 2
+          operation: ADD_NUMBER
+      effects:
+        gem-strike:
+          trigger: ON_HIT
+          effect: PURE_DAMAGE
+          target: VICTIM
+          damage: 2.0
+
+    fanged-blade:
+      material: DIAMOND_SWORD
+      name: "&4Fanged Blade"
+      lore:
+        - "&7A blade made from the fangs of a spider queen"
+        - "&7Enchanted to cut down spiders swiftly"
+      enchantments:
+        - type: BANE_OF_ARTHROPODS
+          level: 9
+      effects:
+        venomous-strike:
+          trigger: ON_HIT
+          effect: POTION
+          target: VICTIM
+          potion-type: POISON
+          potion-duration: 40
+          potion-level: 1
+          chance: 0.4  
+
+    blue-dragon-sword:
+      material: DIAMOND_SWORD
+      name: "&9Blue Dragon Sword"
+      lore:
+        - "&7Forged through the scales of a dragon"
+        - "&7Heated with an ancient flame in the nether"
+        - "&7Empowered with the dragon's fury"
+        - "&7Its magic, once strong, now will fade as it's last wielder falls"
+      enchantments:
+        - type: SHARPNESS
+          level: 3
+        - type: FIRE_ASPECT
+          level: 1
+        - type: UNBREAKING
+          level: 5
+        - type: SMITE
+          level: 3
+        - type: LOOTING
+          level: 3
+        - type: VANISHING_CURSE
+          level: 1  
+      attributes:  
+        - type: ATTACK_DAMAGE
+          amount: 9
+          operation: ADD_NUMBER
+      
+    childrens-sparring-sword:
+      material: WOODEN_SWORD
+      name: "&eChildren's Sparring Sword"
+      lore:
+        - "&7A lightweight wooden sword for training"
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 1
+          operation: ADD_NUMBER
+        
+      
+       
+
+  # Armor configuration
+  armor:
+    comfort:
+      material: NETHERITE_CHESTPLATE
+      name: "&aComfort"
+      lore:
+        - "&7Feels like a warm hug"
+      enchantments:
+        - type: PROTECTION
+          level: 3
+      attributes:
+        - type: ARMOR
+          amount: 2
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 1
+          operation: ADD_NUMBER  
+        - type: MAX_HEALTH
+          amount: 10
+          operation: ADD_NUMBER
+
+    infernal-helmet:
+      material: NETHERITE_HELMET
+      name: "&cInfernal Helmet"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 5
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+
+    infernal-chestplate:
+      material: NETHERITE_CHESTPLATE
+      name: "&cInfernal Chestplate"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 10
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+
+    infernal-leggings:
+      material: NETHERITE_LEGGINGS
+      name: "&cInfernal Leggings"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 8
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+
+    infernal-boots:
+      material: NETHERITE_BOOTS
+      name: "&cInfernal Boots"
+      lore:
+        - "&7Forged in the depths of the Nether"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 4
+        - type: PROTECTION
+          level: 4
+        - type: FEATHER_FALLING
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 5
+          operation: ADD_NUMBER
+        - type: ARMOR_TOUGHNESS
+          amount: 3
+          operation: ADD_NUMBER
+
+    long-fall-boots:
+      material: IRON_BOOTS
+      name: "&bLong Fall Boots"
+      lore:
+        - "&7Boots that negate fall damage"
+      enchantments:
+        - type: FEATHER_FALLING
+          level: 10
+        - type: PROTECTION
+          level: 4
+      attributes:
+        - type: ARMOR
+          amount: 1
+          operation: ADD_NUMBER
+        - type: GRAVITY
+          amount: -0.10
+          operation: ADD_SCALAR  
+          slot: BOOTS
+      unbreakable: true
+      effects:
+        negate-fall-damage:
+          trigger: EQUIPPED
+          effect: IMMUNITY
+          target: SELF
+          cooldown: 0
+          negate-fall-damage: true
+
+    boots-of-alure:
+      material: DIAMOND_BOOTS
+      name: "&aBoots of Alure"
+      lore:
+        - "&7You look slightly nicer wearing these"
+      enchantments:
+        - type: PROTECTION
+          level: 1
+        - type: FEATHER_FALLING
+          level: 1
+      effects:
+        sparkle:
+          trigger: EQUIPPED
+          effect: PARTICLES
+          target: SELF
+          particle-type: HAPPY_VILLAGER
+          chance: 0.05
+
+    hard-hat:
+      material: IRON_HELMET
+      name: "&7Hard Hat"
+      lore:
+        - "&7Safety first!"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+      effects:
+        safety-first:
+          trigger: ON_HIT_TAKEN
+          effect: POTION
+          target: SELF
+          potion-type: DAMAGE_RESISTANCE
+          potion-duration: 10
+          potion-level: 1
+          chance: 1.0    
+
+    rusted-helmet:
+      material: CHAINMAIL_HELMET
+      name: "&6Rusted Helmet"
+      lore:
+        - "&7Old and worn helmet"
+      enchantments:
+        - type: PROTECTION
+          level: 1
+      attributes:
+        - type: ARMOR
+          amount: 1
+          operation: ADD_NUMBER
+
+    rusted-chestplate:
+      material: CHAINMAIL_CHESTPLATE
+      name: "&6Rusted Chestplate"
+      lore:
+        - "&7Old and worn chestplate"
+      enchantments:
+        - type: PROTECTION
+          level: 1
+      attributes:
+        - type: ARMOR
+          amount: 3
+          operation: ADD_NUMBER      
+
+    rusted-leggings:
+      material: CHAINMAIL_LEGGINGS
+      name: "&6Rusted Leggings"
+      lore:
+        - "&7Old and worn leggings"
+      enchantments:
+        - type: PROTECTION
+          level: 1
+      attributes:
+        - type: ARMOR
+          amount: 2
+          operation: ADD_NUMBER      
+
+    rusted-boots:
+      material: CHAINMAIL_BOOTS
+      name: "&6Rusted Boots"
+      lore:
+        - "&7Old and worn boots"
+      enchantments:
+        - type: PROTECTION
+          level: 1
+      attributes:
+        - type: ARMOR
+          amount: 1
+          operation: ADD_NUMBER
+          
+    miners-helm:
+      material: GOLDEN_HELMET
+      name: "&7Old Miner's Helm"
+      lore:
+        - "&7A bit faulty, but it still works occasionally"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+      effects:
+        cave-light:
+          trigger: EQUIPPED
+          effect: POTION
+          target: SELF
+          potion-type: NIGHT_VISION
+          potion-duration: 15
+          potion-level: 1
+          chance: 0.7
+          cooldown: 10
+    
+    herobines-cursed-pants:
+      material: DIAMOND_LEGGINGS
+      name: "&0Herobrine's Cursed Pants"
+      lore:
+        - "&7An aura of dread and death to all those who come near the wearer"
+      enchantments:
+        - type: BINDING_CURSE
+          level: 1
+      attributes:
+        - type: ARMOR
+          amount: 2
+          operation: ADD_NUMBER
+      effects:
+        damage-cast:
+          trigger: EQUIPPED
+          effect: AOE_POTION
+          target: SELF
+          potion-type: INSTANT_DAMAGE
+          potion-duration: 10
+          potion-level: 1
+          radius: 4.0
+          aoe-include-caster: false
+          aoe-include-allies: false
+          aoe-include-players: true
+          aoe-include-others: true
+          cooldown: 3
+          chance: 0.4
+        shadow-cast:
+          trigger: EQUIPPED
+          effect: AOE_POTION
+          target: SELF
+          potion-type: DARKNESS
+          potion-duration: 10
+          potion-level: 1
+          radius: 8.0
+          aoe-include-caster: false
+          aoe-include-allies: false
+          aoe-include-players: true
+          aoe-include-others: true
+          chance: 1.0  
+
+    mountaineer-boots:
+      material: IRON_BOOTS
+      name: "&7Mountaineer Boots"
+      lore:
+        - "&7Height is no obstacle"
+        - "&7Each step becomes easier to take"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+      attributes:
+        - type: STEP_HEIGHT
+          amount: 0.5
+          operation: ADD_NUMBER  
+      unbreakable: true   
+
+    lost-adventurers-helmet:
+      material: LEATHER_HELMET
+      name: "&eLost Adventurer's Helmet"
+      lore:
+        - "&7A helmet containing the stories of countless adventures"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+        - type: UNBREAKING
+          level: 6  
+      attributes:
+        - type: ARMOR
+          amount: 2
+          operation: ADD_NUMBER
+        - type: MAX_HEALTH
+          amount: 4
+          operation: ADD_NUMBER
+      effects:
+        keen-mind:
+          trigger: EQUIPPED
+          effect: POTION
+          target: SELF
+          potion-type: HERO_OF_THE_VILLAGE
+          potion-duration: 60
+          potion-level: 1
+          chance: 0.1
+          cooldown: 300
+
+    lost-adventurers-chestplate:
+      material: LEATHER_CHESTPLATE
+      name: "&eLost Adventurer's Chestplate"
+      lore:
+        - "&7A chestplate entwined with the spirit of adventure"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+        - type: UNBREAKING
+          level: 6  
+      attributes:
+        - type: ARMOR
+          amount: 4
+          operation: ADD_NUMBER
+        - type: MAX_HEALTH
+          amount: 8
+          operation: ADD_NUMBER
+      effects:
+        fearless-heart:
+          trigger: EQUIPPED
+          effect: POTION
+          target: SELF
+          potion-type: ABSORPTION
+          potion-duration: 60
+          potion-level: 1
+          chance: 1.0
+          cooldown: 59
+
+    lost-adventurers-leggings:
+      material: LEATHER_LEGGINGS
+      name: "&eLost Adventurer's Leggings"
+      lore:
+        - "&7A set of leggings born the weight of many battles"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+        - type: UNBREAKING
+          level: 6  
+      attributes:
+        - type: ARMOR
+          amount: 3
+          operation: ADD_NUMBER
+        - type: MAX_HEALTH
+          amount: 6
+          operation: ADD_NUMBER
+      effects:
+        weight-bearer:
+          trigger: EQUIPPED
+          effect: POTION
+          target: SELF
+          potion-type: STRENGTH
+          potion-duration: 10
+          potion-level: 1
+          chance: 1.0    
+
+    lost-adventurers-boots:
+      material: LEATHER_BOOTS
+      name: "&eLost Adventurer's Boots"
+      lore:
+        - "&7A pair of boots that have walked countless paths"
+      enchantments:
+        - type: PROTECTION
+          level: 2
+        - type: UNBREAKING
+          level: 6  
+      attributes:
+        - type: ARMOR
+          amount: 1
+          operation: ADD_NUMBER
+        - type: MAX_HEALTH
+          amount: 2
+          operation: ADD_NUMBER
+      effects:
+        path-seeker:
+          trigger: EQUIPPED
+          effect: POTION
+          target: SELF
+          potion-type: SPEED
+          potion-duration: 10
+          potion-level: 1
+          chance: 1.0    
+
+        
+
+# ===============================
+# Uniques Configuration
+# ===============================
+# Define uniques items that can be used and dropped by mobs
+  uniques:
+
+    magnifying-glass:
+      material: GLASS
+      name: "&eMagnifying Glass"
+      lore:
+        - "&7Somehow always has enough light to burn something"
+      enchantments:
+        - type: FIRE_ASPECT
+          level: 1
+      glow: true
+
+    lantern-of-true-slight:
+      material: LANTERN
+      name: "&eLantern of True Sight"
+      lore:
+        - "&7Grants the ability to see more than the normal eye"
+      effects:
+        true-sight:
+          trigger: HOLDING
+          effect: POTION
+          target: SELF
+          potion-type: NIGHT_VISION
+          chance: 1.0
+          potion-duration: 12
+          potion-level: 1  
+
+    rich-diamond:
+      material: DIAMOND
+      name: "&cRich Diamond"
+      lore:
+        - "&7Once retrieved by a legendary miner and now fought over by kings"
+        - "&7Grants riches beyond imagination"
+      enchantments:
+        - type: LOOTING
+          level: 10
+        - type: FORTUNE
+          level: 10
+        - type: MENDING
+          level: 10
+        - type: UNBREAKING
+          level: 10
+
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 1
+          operation: ADD_NUMBER
+      unbreakable: true
+      glow: true
+
+    cold-heart:
+      material: BLUE_ICE
+      name: "&bCold Heart"
+      lore:
+        - "&7Found in the corpse of frost dragon"
+        - "&7Freezes enemies when struck"
+      enchantments:
+        - type: SHARPNESS
+          level: 1
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 4
+          operation: ADD_NUMBER
+        - type: ATTACK_SPEED
+          amount: -0.2
+          operation: ADD_SCALAR
+      unbreakable: true
+      effects:
+        freeze-1:
+          trigger: ON_HIT
+          effect: POTION
+          potion-type: SLOWNESS
+          target: VICTIM
+          chance: 1.0
+          potion-duration: 5
+          potion-level: 10
+        freeze-2:
+          trigger: ON_HIT
+          effect: POTION
+          potion-type: MINING_FATIGUE
+          target: VICTIM
+          chance: 1.0
+          potion-duration: 5
+          potion-level: 10
+    
+    infernal-core:
+      material: NETHER_STAR
+      name: "&cInfernal Core"
+      lore:
+        - "&7A core of pure Nether energy"
+        - "&7Radiates intense heat"
+      enchantments:
+        - type: FIRE_PROTECTION
+          level: 5
+      effects:
+        nether-immune:
+          trigger: INVENTORY
+          effect: IMMUNITY
+          immune-potion-types:
+            - WITHER
+          target: SELF
+          cooldown: 0
+      glow: true
+
+    delectable-berries:
+      material: SWEET_BERRIES
+      name: "&aDelectable Berries"
+      lore:
+        - "&7Nurishes the soul and intantly heals the body"
+      effects:
+        heal-on-consume:
+          trigger: CONSUME
+          effect: HEAL
+          target: SELF
+          chance: 1.0
+          healing: 2.0
+
+    cursed-coin:
+      material: GOLD_NUGGET
+      name: "&8Cursed Coin"
+      lore:
+        - "&7Lost treasure is much more promising - with a price"
+      glow: true
+      effects:
+        greed-mark:
+          trigger: HOLDING
+          effect: POTION
+          target: SELF
+          potion-type: LUCK
+          potion-duration: 10
+          potion-level: 1
+          chance: 1.0
+        lingering-unease:
+          trigger: HOLDING
+          effect: POTION
+          target: SELF
+          potion-type: WEAKNESS
+          potion-duration: 120
+          potion-level: 2
+        heavy-unease:
+          trigger: HOLDING
+          effect: POTION
+          target: SELF
+          potion-type: SLOWNESS
+          potion-duration: 120
+          potion-level: 2
+
+    golden_apple:
+      material: GOLDEN_APPLE
+      name: "&6Tasty Apple"
+      lore:
+        - "&7A bit harder to eat, but much more rewarding"
+      effects:
+        regen-on-consume:
+          trigger: CONSUME
+          effect: POTION
+          target: SELF
+          potion-type: SATURATION
+          potion-level: 1
+          chance: 1.0
+    
+    wool:
+      material: WHITE_WOOL
+      name: "&fWool"
+      lore:
+        - "&7Just a regular block of wool"
+        - "&7Nothing special about it - maybe?"
+      effects:
+        fluff-particles:
+          trigger: ON_HIT_TAKEN
+          effect: PARTICLES
+          target: SELF
+          particle-type: CLOUD
+          chance: 1.0
+        soul-remenants:
+          trigger: ON_HIT_TAKEN
+          effect: SOUND
+          target: SELF
+          sound-type: GOAT_SCREAMING_AMBIENT
+          sound-volume: 1.0
+          sound-pitch: 1.0
+          chance: 0.01 
+
+    healers-wand:
+      material: BLAZE_ROD
+      name: "&aHealer's Wand"
+      lore:
+        - "&7A wand used by ancient healers"
+      enchantments:
+        - type: MENDING
+          level: 5
+      effects:
+        minor-heal:
+          trigger: RIGHT_CLICK
+          effect: AOE_POTION
+          potion-type: HEAL
+          radius: 5.0
+          aoe-include-caster: true
+          aoe-include-allies: true
+          aoe-include-players: true
+          aoe-include-others: false
+          target: SELF
+          chance: 1.0
+          cooldown: 10
+        major-heal:
+          trigger: RIGHT_CLICK
+          effect: HEAL
+          target: SELF
+          chance: 0.1
+          healing: 6.0
+          cooldown: 30

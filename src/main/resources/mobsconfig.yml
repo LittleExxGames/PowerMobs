@@ -1,0 +1,635 @@
+# ===============================
+# Power Mob Configuration
+# ===============================
+# This file defines all predefined "power mobs" that can spawn in the world.
+# Each mob entry describes:
+# - What vanilla mob it is based on
+# - How its stats are scaled (health, damage, speed)
+# - Which abilities and equipment it can use
+# - What it drops
+# - Where/when it is allowed to spawn
+#
+# Power mobs are usually created/edited via the in‑game UI.
+# This file is mainly for understanding the structure and making small tweaks.
+
+# ===============================
+# ROOT STRUCTURE
+# ===============================
+# power-mobs:                   # Map - All predefined power mob definitions
+#   <mob-id>:                   # String key - Unique ID for this mob (e.g. "zombie-king")
+#     ...mob definition...
+
+# ===============================
+# MOB DEFINITION STRUCTURE
+# ===============================
+# Each mob under power-mobs:<mob-id> can use the following sections:
+
+# --- BASIC MOB PROPERTIES ---
+# type:                         # String (REQUIRED) - Base Minecraft mob type (ZOMBIE, SKELETON, etc.)
+#                               # Must be a valid living EntityType.
+#
+# name:                         # String (OPTIONAL) - Display name with color codes (&c, &6, etc.)
+#                               # Shown above the mob if "show-names" is enabled in config.yml.
+#                               # Default: "Custom <TYPE>" if not set.
+#
+# health:                       # String (OPTIONAL) - Health value or range
+#                               # Format: "<value>" or "min-max"
+#                               # Examples: "100", "80-120"
+#                               # If omitted: mob keeps vanilla health, scaled by multipliers instead.
+# health-weight:                # Integer (OPTIONAL) - Weight used when picking a value in the range
+#                               # Higher weight = favors higher values in the range.
+#                               # Default: 100.
+#
+# damage-multiplier:            # String (OPTIONAL) - Multiplier or range for base attack damage
+#                               # Format: "<value>" or "min-max" (e.g. "2.0" or "1.5-3.0")
+# damage-weight:                # Integer (OPTIONAL) - Weighted random in the range (default 100).
+#
+# speed-multiplier:             # String (OPTIONAL) - Multiplier or range for movement speed
+#                               # Format: "<value>" or "min-max" (e.g. "1.2" or "1.0-1.5")
+# speed-weight:                 # Integer (OPTIONAL) - Weighted random in the range (default 100).
+#
+# attributes:                   # Map (OPTIONAL) - Direct overrides for specific attributes
+#   <attribute-name>: <value>   # Example keys: knockback-resistance, follow-range, etc.
+#                               # If set, replaces the base value for that attribute.
+
+# --- ABILITIES ---
+# abilities:                    # List[String] (OPTIONAL) - IDs from abilitiesconfig.yml
+#   - fire-aura
+#   - summon-minions
+#                               # Each ability is applied once when the mob is created.
+
+# --- EQUIPMENT OPTIONS ---
+# possible-equipment:           # Map (OPTIONAL) - What gear this mob can wear/use (MORE THAN ONE WILL BE IGNORED FOR NOW)
+#   possible-weapons:           # List[Map] - Possible main-hand items
+#   possible-offhands:          # List[Map] - Possible offhand items
+#   possible-helmets:           # List[Map] - Possible helmets
+#   possible-chestplates:       # List[Map] - Possible chestplates
+#   possible-leggings:          # List[Map] - Possible leggings
+#   possible-boots:             # List[Map] - Possible boots
+#
+#   # Each list entry is a small map describing one option:
+#   # (similar to random-mob equipment entries)
+#   #
+#   # - item: <id>              # String (REQUIRED)
+#   #                           # Either:
+#   #                           # - Custom item ID from itemsconfig.yml (e.g. "flame-sword")
+#   #                           # - Vanilla material name (optionally with suffix, e.g. "DIAMOND_SWORD-1")
+#   #   enchantments:           # List[Map] (OPTIONAL) - Extra enchants applied when chosen
+#   #     - type: <ENCHANT>     # e.g. SHARPNESS, PROTECTION
+#   #       level: <value>      # Single level or "min-max" (handled by EquipmentItemConfig)
+#   #       weight: <value>     # Weight when picking level in a range (default 100)
+#
+# When the mob is created, the plugin currently selects the FIRST entry in each non-empty list.
+# (The in‑game UI may randomize or expand this later; config here just defines the options.)
+
+# --- GLOWING EFFECT ---
+# glowing:                      # Boolean (OPTIONAL) - Should the mob glow?
+#                               # Default: false.
+#
+# glow-time:                    # String (OPTIONAL) - Glow duration in seconds or range
+#                               # Format: "<value>" or "min-max" (e.g. "100" or "60-180")
+#                               # Default: "100" if not set.
+
+# --- DROP CONFIGURATION ---
+# drop-count:                   # String (OPTIONAL) - How many DIFFERENT drop entries can trigger
+#                               # Format: "<value>" or "min-max" (e.g. "0-2", "3")
+#                               # Default: "0-2".
+# drop-weight:                  # Integer (OPTIONAL) - Weight curve for drop-count selection
+#                               # 100 = neutral, lower favors smaller counts, higher favors larger.
+#                               # Default: 100.
+#
+# exp-chance:                   # Number (OPTIONAL) - Chance for this mob to drop extra experience
+#                               # Range: 0.0–1.0 (0%–100%). Default: 1.0.
+#
+# exp-amount:                   # String (OPTIONAL) - Experience amount or range
+#                               # Format: "<value>" or "min-max" (e.g. "50-200")
+# exp-weight:                   # Integer (OPTIONAL) - Weight curve in that range (default 100).
+#
+# drops:                        # List[Map] (OPTIONAL) - Custom drop entries
+#   - item: <id>                # String (REQUIRED) - Material name or custom item ID
+#     chance: <0.0-1.0>         # Number (OPTIONAL) - Chance this drop is considered (default 1.0)
+#     amount: "<min>-<max>"     # String (OPTIONAL) - Range or single amount, e.g. "1-3", "1"
+#     amount-weight: 100        # Integer (OPTIONAL) - Weight curve in that range
+#     enchantments:             # List[Map] (OPTIONAL) - For ENCHANTED_BOOK or enchanted gear
+#       - type: <ENCHANT>
+#         level: "<min>-<max>"
+#         weight: 100
+#   # Special case:
+#   # - item: EXPERIENCE        # Gives only experience, using exp-amount/exp-weight style fields.
+
+# --- SPAWN CONDITIONS ---
+# spawn-conditions:             # Map (OPTIONAL) - Where/when this mob is allowed to appear
+#   spawn-chance:               # Number (OPTIONAL) - Extra spawn chance factor (0.0–1.0)
+#   spawn-delay: "min-max"      # String (OPTIONAL) - Cooldown in seconds between spawns of this mob ID
+#   spawn-delay-weight: 100     # Integer (OPTIONAL) - Weighted range selection
+#
+#   replace-type-only:          # Boolean (OPTIONAL)
+#                               # true  = only replace mobs of the same type as "type:"
+#                               # false = can spawn on any allowed hostile type (using internal checks)
+#
+#   despawn-time:               # String/Number (OPTIONAL) - Seconds before auto-despawn
+#                               # Format: "<value>" or "min-max". 0 or missing = no forced despawn.
+#
+#   dimensions:                 # List[String] (OPTIONAL) - Allowed dimensions
+#                               # Examples: OVERWORLD, NETHER, THE_END
+#                               # Empty or missing = all dimensions.
+#
+#   min-x, max-x:               # Number (OPTIONAL) - Allowed X distance from world spawn
+#   min-z, max-z:               # Number (OPTIONAL) - Allowed Z distance from world spawn
+#   min-y, max-y:               # Number (OPTIONAL) - Allowed Y range
+#                               # Use very large values if you want “no limit” in config.
+#
+#   biomes:                     # List[String] (OPTIONAL) - Allowed biomes
+#                               # If present and non-empty, mob only spawns in these biomes.
+#
+#   biome-groups:               # Map (OPTIONAL) - Grouped biome filters (Mountain, Forest, Plains, etc.)
+#                               # Each group is a list of biomes; normally populated by the UI.
+#
+#   time:                       # List[String] (OPTIONAL) - Allowed times of day
+#                               # Values like: DAY, NIGHT
+#                               # Empty or missing = any time.
+
+# ===============================
+# NOTES / BEST PRACTICES
+# ===============================
+# - <mob-id> must be unique under power-mobs.
+# - Most ranges ("min-max") are used with a weight field; for small tweaks you usually
+#   only change the numbers, not the weights.
+# - Equipment and drops can reference:
+#   - Vanilla materials (DIAMOND_SWORD, NETHERITE_INGOT, etc.)
+#   - Custom item IDs from itemsconfig.yml (e.g. "flame-sword", "infernal-helmet").
+# - The in‑game editor will generate correct structure for you; use this file mainly
+#   to polish numbers, names, ranges, and add/remove simple entries.
+
+power-mobs:
+
+  skeleton-archer:
+    type: STRAY
+    name: '&b&lFrost Archer'
+    health: '40'
+    health-weight: 100
+    damage-multiplier: '1.5'
+    damage-weight: 100
+    speed-multiplier: '1.3'
+    speed-weight: 100
+    attributes: {}
+    abilities:
+      - invisibility
+    possible-equipment:
+      possible-weapons:
+        - item: hunters-bow
+      possible-offhands: []
+      possible-helmets:
+        - item: rusted-helmet
+      possible-chestplates: []
+      possible-leggings: []
+      possible-boots: []
+    glowing: false
+    glow-time: '100'
+    drop-count: 0-2
+    drop-weight: 100
+    exp-chance: 1.0
+    exp-amount: '10'
+    exp-weight: 100
+    drops:
+      - item: BOW-2
+        chance: 0.5
+        amount: 1
+        amount-weight: 100
+        enchantments:
+          - type: POWER
+            level: 1-5
+            weight: 120
+          - type: UNBREAKING
+            level: 1-5
+            weight: 50
+      - item: ARROW-1
+        chance: 1.0
+        amount: 6-25
+        amount-weight: 100
+    spawn-conditions:
+      spawn-chance: 0.05
+      spawn-delay: 500-1200
+      spawn-delay-weight: 100
+      replace-type-only: true
+      despawn-time: '1800'
+      dimensions:
+        - OVERWORLD
+      min-x: 500
+      max-x: 2000
+      min-z: 500
+      max-z: 2000
+      min-y: 40
+      max-y: 70
+      biome-groups:
+        Mountain:
+          - WINDSWEPT_HILLS
+          - WINDSWEPT_FOREST
+          - WINDSWEPT_GRAVELLY_HILLS
+          - STONY_PEAKS
+          - JAGGED_PEAKS
+          - FROZEN_PEAKS
+          - SNOWY_SLOPES
+        Cold:
+          - SNOWY_PLAINS
+          - ICE_SPIKES
+          - SNOWY_TAIGA
+          - GROVE
+          - SNOWY_BEACH
+          - FROZEN_RIVER
+        Jungle:
+          - JUNGLE
+          - SPARSE_JUNGLE
+          - BAMBOO_JUNGLE
+        Nether:
+          - NETHER_WASTES
+          - SOUL_SAND_VALLEY
+          - CRIMSON_FOREST
+          - WARPED_FOREST
+          - BASALT_DELTAS
+        Misc:
+          - BEACH
+          - STONY_SHORE
+          - RIVER
+          - MUSHROOM_FIELDS
+          - THE_VOID
+        Forest:
+          - FOREST
+          - BIRCH_FOREST
+          - DARK_FOREST
+          - FLOWER_FOREST
+          - TAIGA
+          - OLD_GROWTH_BIRCH_FOREST
+          - OLD_GROWTH_PINE_TAIGA
+          - OLD_GROWTH_SPRUCE_TAIGA
+          - CHERRY_GROVE
+          - PALE_GARDEN
+        Ocean:
+          - OCEAN
+          - DEEP_OCEAN
+          - WARM_OCEAN
+          - LUKEWARM_OCEAN
+          - COLD_OCEAN
+          - DEEP_COLD_OCEAN
+          - DEEP_LUKEWARM_OCEAN
+          - FROZEN_OCEAN
+          - DEEP_FROZEN_OCEAN
+        Swamp:
+          - SWAMP
+          - MANGROVE_SWAMP
+        Plains:
+          - PLAINS
+          - SUNFLOWER_PLAINS
+          - MEADOW
+          - SAVANNA
+          - SAVANNA_PLATEAU
+          - WINDSWEPT_SAVANNA
+        End:
+          - THE_END
+          - END_BARRENS
+          - END_HIGHLANDS
+          - END_MIDLANDS
+          - SMALL_END_ISLANDS
+        Desert:
+          - DESERT
+          - BADLANDS
+          - ERODED_BADLANDS
+          - WOODED_BADLANDS
+        Underground:
+          - DEEP_DARK
+          - DRIPSTONE_CAVES
+          - LUSH_CAVES
+      time:
+        - NIGHT
+  deep-miner:
+    type: SKELETON
+    name: §8Undead Miner
+    health: 35-50
+    health-weight: 100
+    damage-multiplier: '1.0'
+    damage-weight: 100
+    speed-multiplier: '1.0'
+    speed-weight: 100
+    attributes: {}
+    abilities: []
+    possible-equipment:
+      possible-weapons:
+        - item: IRON_PICKAXE-1
+      possible-offhands:
+        - item: LANTERN-1
+      possible-helmets:
+        - item: miners-helm
+      possible-chestplates: []
+      possible-leggings: []
+      possible-boots: []
+    glowing: false
+    glow-time: '100'
+    drop-count: 0-2
+    drop-weight: 100
+    exp-chance: 1.0
+    exp-amount: 10-15
+    exp-weight: 100
+    drops:
+      - item: EMERALD-1
+        chance: 0.25
+        amount: 1-6
+        amount-weight: 25
+      - item: DIAMOND-1
+        chance: 0.25
+        amount: 1-4
+        amount-weight: 25
+      - item: DEEPSLATE_DIAMOND_ORE-1
+        chance: 0.25
+        amount: 1-2
+        amount-weight: 100
+      - item: DEEPSLATE_COAL_ORE-1
+        chance: 0.5
+        amount: 1-2
+        amount-weight: 100
+      - item: FURNACE-1
+        chance: 0.45
+        amount: 1
+        amount-weight: 100
+      - item: IRON_NUGGET-1
+        chance: 0.3
+        amount: 1-7
+        amount-weight: 100
+      - item: IRON_INGOT-1
+        chance: 0.65
+        amount: 3-6
+        amount-weight: 100
+      - item: MINECART-1
+        chance: 0.2
+        amount: 1
+        amount-weight: 100
+      - item: miners-helm
+        chance: 0.1
+        amount: 1
+        amount-weight: 100
+      - item: lantern-of-true-slight
+        chance: 0.05
+        amount: 1
+        amount-weight: 100
+      - item: INFESTED_COBBLESTONE-1
+        chance: 0.4
+        amount: 4-12
+        amount-weight: 100
+      - item: IRON_PICKAXE-1
+        chance: 0.85
+        amount: 1
+        amount-weight: 100
+        enchantments:
+          - type: EFFICIENCY
+            level: 1-4
+            weight: 60
+      - item: BREAD-1
+        chance: 0.8
+        amount: 2-5
+        amount-weight: 100
+    spawn-conditions:
+      spawn-chance: 0.0
+      spawn-delay: 500-1200
+      spawn-delay-weight: 100
+      replace-type-only: true
+      despawn-time: '1800'
+      dimensions:
+        - OVERWORLD
+        - CUSTOM
+      min-x: infinite
+      max-x: infinite
+      min-z: infinite
+      max-z: infinite
+      min-y: infinite
+      max-y: infinite
+      biome-groups:
+        Mountain:
+          - WINDSWEPT_HILLS
+          - WINDSWEPT_FOREST
+          - WINDSWEPT_GRAVELLY_HILLS
+          - STONY_PEAKS
+          - JAGGED_PEAKS
+          - FROZEN_PEAKS
+          - SNOWY_SLOPES
+        Cold:
+          - SNOWY_PLAINS
+          - ICE_SPIKES
+          - SNOWY_TAIGA
+          - GROVE
+          - SNOWY_BEACH
+          - FROZEN_RIVER
+        Jungle:
+          - JUNGLE
+          - SPARSE_JUNGLE
+          - BAMBOO_JUNGLE
+        Nether:
+          - NETHER_WASTES
+          - SOUL_SAND_VALLEY
+          - CRIMSON_FOREST
+          - WARPED_FOREST
+          - BASALT_DELTAS
+        Misc:
+          - BEACH
+          - STONY_SHORE
+          - RIVER
+          - MUSHROOM_FIELDS
+          - THE_VOID
+        Forest:
+          - FOREST
+          - BIRCH_FOREST
+          - DARK_FOREST
+          - FLOWER_FOREST
+          - TAIGA
+          - OLD_GROWTH_BIRCH_FOREST
+          - OLD_GROWTH_PINE_TAIGA
+          - OLD_GROWTH_SPRUCE_TAIGA
+          - CHERRY_GROVE
+          - PALE_GARDEN
+        Ocean:
+          - OCEAN
+          - DEEP_OCEAN
+          - WARM_OCEAN
+          - LUKEWARM_OCEAN
+          - COLD_OCEAN
+          - DEEP_COLD_OCEAN
+          - DEEP_LUKEWARM_OCEAN
+          - FROZEN_OCEAN
+          - DEEP_FROZEN_OCEAN
+        Swamp:
+          - SWAMP
+          - MANGROVE_SWAMP
+        Plains:
+          - PLAINS
+          - SUNFLOWER_PLAINS
+          - MEADOW
+          - SAVANNA
+          - SAVANNA_PLATEAU
+          - WINDSWEPT_SAVANNA
+        End:
+          - THE_END
+          - END_BARRENS
+          - END_HIGHLANDS
+          - END_MIDLANDS
+          - SMALL_END_ISLANDS
+        Desert:
+          - DESERT
+          - BADLANDS
+          - ERODED_BADLANDS
+          - WOODED_BADLANDS
+        Underground:
+          - DEEP_DARK
+          - DRIPSTONE_CAVES
+          - LUSH_CAVES
+  lost-adventurer:
+    type: VINDICATOR
+    name: §2§lLost Adventurer
+    health: 150-185
+    health-weight: 100
+    damage-multiplier: 2.0-3.0
+    damage-weight: 100
+    speed-multiplier: 1.3-1.0
+    speed-weight: 100
+    attributes: {}
+    abilities:
+      - leap
+    possible-equipment:
+      possible-helmets:
+        - item: lost-adventurers-helmet
+      possible-leggings:
+        - item: lost-adventurers-leggings
+      possible-weapons:
+        - item: warriors-might
+      possible-chestplates:
+        - item: lost-adventurers-chestplate
+      possible-boots:
+        - item: lost-adventurers-boots
+    glowing: true
+    glow-time: '100'
+    drop-count: 0-2
+    drop-weight: 100
+    exp-chance: 1.0
+    exp-amount: 45-75
+    exp-weight: 100
+    drops:
+      - item: CLOSED_EYEBLOSSOM-1
+        chance: 1.0
+        amount: 1
+        amount-weight: 100
+      - item: ENDER_EYE-1
+        chance: 0.25
+        amount: 3-5
+        amount-weight: 100
+      - item: GOLDEN_CARROT-1
+        chance: 0.7
+        amount: 12-15
+        amount-weight: 100
+      - item: lost-adventurers-boots
+        chance: 0.1
+        amount: 1
+        amount-weight: 100
+      - item: lost-adventurers-chestplate
+        chance: 0.1
+        amount: 1
+        amount-weight: 100
+      - item: lost-adventurers-leggings
+        chance: 0.1
+        amount: 1
+        amount-weight: 100
+      - item: lost-adventurers-helmet
+        chance: 0.1
+        amount: 1
+        amount-weight: 100
+    spawn-conditions:
+      spawn-chance: 0.0
+      spawn-delay: 500-1200
+      spawn-delay-weight: 100
+      replace-type-only: false
+      despawn-time: '300'
+      dimensions:
+        - OVERWORLD
+        - NETHER
+        - THE_END
+        - CUSTOM
+      min-x: 4000
+      max-x: infinite
+      min-z: infinite
+      max-z: infinite
+      min-y: infinite
+      max-y: infinite
+      biome-groups:
+        Mountain:
+          - WINDSWEPT_HILLS
+          - WINDSWEPT_FOREST
+          - WINDSWEPT_GRAVELLY_HILLS
+          - STONY_PEAKS
+          - JAGGED_PEAKS
+          - FROZEN_PEAKS
+          - SNOWY_SLOPES
+        Cold:
+          - SNOWY_PLAINS
+          - ICE_SPIKES
+          - SNOWY_TAIGA
+          - GROVE
+          - SNOWY_BEACH
+          - FROZEN_RIVER
+        Jungle:
+          - JUNGLE
+          - SPARSE_JUNGLE
+          - BAMBOO_JUNGLE
+        Nether:
+          - NETHER_WASTES
+          - SOUL_SAND_VALLEY
+          - CRIMSON_FOREST
+          - WARPED_FOREST
+          - BASALT_DELTAS
+        Misc:
+          - BEACH
+          - STONY_SHORE
+          - RIVER
+          - MUSHROOM_FIELDS
+          - THE_VOID
+        Forest:
+          - FOREST
+          - BIRCH_FOREST
+          - DARK_FOREST
+          - FLOWER_FOREST
+          - TAIGA
+          - OLD_GROWTH_BIRCH_FOREST
+          - OLD_GROWTH_PINE_TAIGA
+          - OLD_GROWTH_SPRUCE_TAIGA
+          - CHERRY_GROVE
+          - PALE_GARDEN
+        Ocean:
+          - OCEAN
+          - DEEP_OCEAN
+          - WARM_OCEAN
+          - LUKEWARM_OCEAN
+          - COLD_OCEAN
+          - DEEP_COLD_OCEAN
+          - DEEP_LUKEWARM_OCEAN
+          - FROZEN_OCEAN
+          - DEEP_FROZEN_OCEAN
+        Swamp:
+          - SWAMP
+          - MANGROVE_SWAMP
+        Plains:
+          - PLAINS
+          - SUNFLOWER_PLAINS
+          - MEADOW
+          - SAVANNA
+          - SAVANNA_PLATEAU
+          - WINDSWEPT_SAVANNA
+        End:
+          - THE_END
+          - END_BARRENS
+          - END_HIGHLANDS
+          - END_MIDLANDS
+          - SMALL_END_ISLANDS
+        Desert:
+          - DESERT
+          - BADLANDS
+          - ERODED_BADLANDS
+          - WOODED_BADLANDS
+        Underground:
+          - DEEP_DARK
+          - DRIPSTONE_CAVES
+          - LUSH_CAVES
