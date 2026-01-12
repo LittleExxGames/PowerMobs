@@ -2,10 +2,7 @@ package com.powermobs.UI.pages;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.UI.GUIManager;
-import com.powermobs.UI.framework.AbstractGUIPage;
-import com.powermobs.UI.framework.EditingType;
-import com.powermobs.UI.framework.GUIPageManager;
-import com.powermobs.UI.framework.PlayerSessionData;
+import com.powermobs.UI.framework.*;
 import com.powermobs.mobs.abilities.Ability;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -22,9 +19,8 @@ import java.util.stream.Collectors;
 
 public class ItemSelectionPage extends AbstractGUIPage {
     private static final int INVENTORY_SIZE = 54; // 6 rows of inventory
-    private final CustomItemType selectedItemType = CustomItemType.CUSTOM;
+    private CustomItemType selectedItemType = CustomItemType.CUSTOM;
     private int pageNumber = 0;
-    private boolean showingCustomItems = false;
     private SelectionMode selectionMode = SelectionMode.ITEMS;
     public ItemSelectionPage(GUIPageManager pageManager, GUIManager guiManager) {
         super(pageManager, guiManager, INVENTORY_SIZE, ChatColor.BLUE + "Item Selection List");
@@ -56,34 +52,56 @@ public class ItemSelectionPage extends AbstractGUIPage {
     private void buildItemSelection() {
         List<Object> items;
 
-        if (showingCustomItems) {
             // Get custom items from config/manager
-            items = new ArrayList<>(getCustomItems());
-        } else {
-            // Get vanilla materials
-            items = Arrays.stream(Material.values())
-                    .filter(material -> material.isItem() && !material.isAir())
-                    .sorted(Comparator.comparing(Enum::name))
-                    .collect(Collectors.toList());
-        }
+            if (selectedItemType.getGroup() == FilterGroup.CUSTOM)
+            {
+                items = new ArrayList<>(getCustomItems(selectedItemType));
+            } else {
+                // Get vanilla materials
+                items = Arrays.stream(Material.values())
+                        .filter(material -> material.isItem() && !material.isAir())
+                        .filter(material -> switch (selectedItemType) {
+                            case VANILLA_WEAPONS -> ItemCategories.VANILLA_WEAPONS.contains(material);
+                            case VANILLA_ARMOR -> ItemCategories.VANILLA_ARMOR.contains(material);
+                            case VANILLA_OTHER -> !ItemCategories.VANILLA_WEAPONS.contains(material)
+                                    && !ItemCategories.VANILLA_ARMOR.contains(material);
+                            case VANILLA -> true; // already filtered by isItem + !isAir
 
+                            default -> true; // fallback for other filter types
+                        })
+                        .sorted(Comparator.comparing(Enum::name))
+                        .collect(Collectors.toList());
+            }
         // Setup paging if needed
         int startIndex = pageNumber * 45;
         int endIndex = Math.min(startIndex + 45, items.size());
 
         int slot = 0;
-        if (showingCustomItems) {
-            List<Map.Entry<String, ItemStack>> customItems = new ArrayList<>(pageManager.getPlugin().getEquipmentManager().getAllEquipment().entrySet());
-            customItems.removeIf(entry -> guiManager.getCurrentPlayer().getActiveItems().contains(entry.getKey()));
-            pageManager.getPlugin().debug("Number of custom items found: " + customItems.size(), "ui");
-            endIndex = Math.min(endIndex, customItems.size());
+        if (selectedItemType.getGroup() == FilterGroup.CUSTOM) {
+            Set<String> active = guiManager.getCurrentPlayer().getActiveItems();
+            Map<String, ItemStack> allEquipment = pageManager.getPlugin().getEquipmentManager().getAllEquipment();
+
+            List<String> filteredIds = items.stream()
+                    .map(o -> (String) o)
+                    .filter(id -> !active.contains(id))
+                    .sorted()
+                    .toList();
+
+            pageManager.getPlugin().debug("Number of custom items found (filtered): " + filteredIds.size(), "ui");
+
+            endIndex = Math.min(endIndex, filteredIds.size());
             for (int i = startIndex; i < endIndex; i++) {
-                Map.Entry<String, ItemStack> entry = customItems.get(i);
-                String customItemId = entry.getKey();
-                ItemStack customItem = entry.getValue().clone();
+                String customItemId = filteredIds.get(i);
+                ItemStack base = allEquipment.get(customItemId);
+                if (base == null) continue;
+
+                ItemStack customItem = base.clone();
                 ItemMeta meta = customItem.getItemMeta();
-                meta.setDisplayName(ChatColor.GREEN + "(" + customItemId + ")" + ChatColor.BLUE + " " + meta.getDisplayName());
-                customItem.setItemMeta(meta);
+                if (meta != null) {
+                    meta.setDisplayName(ChatColor.GREEN + "(" + customItemId + ")" + ChatColor.BLUE + " " + meta.getDisplayName());
+                    customItem.setItemMeta(meta);
+                }
+
                 inventory.setItem(slot, customItem);
                 slot++;
             }
@@ -110,24 +128,57 @@ public class ItemSelectionPage extends AbstractGUIPage {
             addNavigationButton(53, true);
         }
 
+        String filterText;
+        Material filterMaterial;
+        switch (selectedItemType) {
+            case VANILLA:
+                filterText = "Vanilla Items";
+                filterMaterial = Material.CRAFTING_TABLE;
+                break;
+            case VANILLA_ARMOR:
+                filterText = "Vanilla Armor";
+                filterMaterial = Material.NETHERITE_CHESTPLATE;
+                break;
+            case VANILLA_WEAPONS:
+                filterText = "Vanilla Weapons";
+                filterMaterial = Material.NETHERITE_SWORD;
+                break;
+            case VANILLA_OTHER:
+                filterText = "Vanilla Other";
+                filterMaterial = Material.BUNDLE;
+                break;
+            case CUSTOM:
+                filterText = "Custom Items";
+                filterMaterial = Material.NETHER_STAR;
+                break;
+            case ARMOR:
+                filterText = "Custom Armor";
+                filterMaterial = Material.TURTLE_HELMET;
+                break;
+            case WEAPONS:
+                filterText = "Custom Weapons";
+                filterMaterial = Material.TRIDENT;
+                break;
+            case UNIQUES:
+                filterText = "Custom Uniques";
+                filterMaterial = Material.DRAGON_BREATH;
+                break;
+            default:
+                filterText = "Unknown";
+                filterMaterial = Material.BARRIER;
+        }
+
         // Toggle custom/vanilla items button
-        ItemStack toggleButton = createGuiItem(
-                showingCustomItems ? Material.CRAFTING_TABLE : Material.ENDER_CHEST,
-                showingCustomItems ? ChatColor.AQUA + "Show Vanilla Items" : ChatColor.LIGHT_PURPLE + "Show Custom Items",
-                ChatColor.GRAY + "Click to toggle between",
-                ChatColor.GRAY + "vanilla and custom items"
-        );
+        ItemStack toggleButton = createGuiItem(filterMaterial, ChatColor.YELLOW + "Showing " + filterText, ChatColor.GRAY + "Click to toggle filter type");
+
         inventory.setItem(47, toggleButton);
 
-        // Back button
         addBackButton(49, ChatColor.RED + "Back to Main Menu");
 
-        // Display currently selected item
         inventory.setItem(51, guiManager.getCurrentPlayer().getSelectedItem());
     }
 
     private void buildAbilitySelection() {
-        // Get all available abilities
         Map<String, Ability> allAbilities = pageManager.getPlugin().getAbilityManager().getAbilities();
 
         // Filter out abilities that are already active for this mob
@@ -139,7 +190,6 @@ public class ItemSelectionPage extends AbstractGUIPage {
 
         pageManager.getPlugin().debug("Number of available abilities: " + availableAbilities.size(), "ui");
 
-        // Setup paging
         int startIndex = pageNumber * 45;
         int endIndex = Math.min(startIndex + 45, availableAbilities.size());
 
@@ -149,13 +199,11 @@ public class ItemSelectionPage extends AbstractGUIPage {
             String abilityId = entry.getKey();
             Ability ability = entry.getValue();
 
-            // Create display item for ability
             ItemStack displayItem = createAbilityDisplayItem(abilityId, ability);
             inventory.setItem(slot, displayItem);
             slot++;
         }
 
-        // Add navigation buttons
         if (pageNumber > 0) {
             addNavigationButton(45, false);
         }
@@ -164,7 +212,6 @@ public class ItemSelectionPage extends AbstractGUIPage {
             addNavigationButton(53, true);
         }
 
-        // Info button showing ability selection mode
         ItemStack infoButton = createGuiItem(
                 Material.ENCHANTED_BOOK,
                 ChatColor.LIGHT_PURPLE + "Ability Selection Mode",
@@ -173,7 +220,6 @@ public class ItemSelectionPage extends AbstractGUIPage {
         );
         inventory.setItem(47, infoButton);
 
-        // Back button
         addBackButton(49, ChatColor.RED + "Back");
     }
 
@@ -209,29 +255,34 @@ public class ItemSelectionPage extends AbstractGUIPage {
         );
     }
 
-    private List<String> getCustomItems() {
+    private List<String> getCustomItems(CustomItemType type) {
         List<String> customItems = new ArrayList<>();
 
-        // Get custom weapons
         Map<String, ItemStack> weapons = pageManager.getPlugin().getEquipmentManager().getWeapons();
-        if (weapons != null) {
-            customItems.addAll(weapons.keySet());
-        }
-
-        // Get custom armor
         Map<String, ItemStack> armor = pageManager.getPlugin().getEquipmentManager().getArmor();
-        if (armor != null) {
-            customItems.addAll(armor.keySet());
-        }
-
-        // Get custom unique items
         Map<String, ItemStack> uniques = pageManager.getPlugin().getEquipmentManager().getUniques();
-        if (uniques != null) {
-            customItems.addAll(uniques.keySet());
+
+        switch (type) {
+            case WEAPONS:
+                if (weapons != null) customItems.addAll(weapons.keySet());
+                break;
+            case ARMOR:
+                if (armor != null) customItems.addAll(armor.keySet());
+                break;
+            case UNIQUES:
+                if (uniques != null) customItems.addAll(uniques.keySet());
+                break;
+            case CUSTOM:
+            default:
+                if (weapons != null) customItems.addAll(weapons.keySet());
+                if (armor != null) customItems.addAll(armor.keySet());
+                if (uniques != null) customItems.addAll(uniques.keySet());
+                break;
         }
 
         return customItems;
     }
+
 
     @Override
     public boolean handleClick(Player player, int slot, ClickType clickType) {
@@ -242,17 +293,14 @@ public class ItemSelectionPage extends AbstractGUIPage {
                 return handleItemSelection(player, slot, clickType);
             }
         } else if (slot == 45 && pageNumber > 0) {
-            // Previous page
             pageNumber--;
             build();
         } else if (slot == 53 && inventory.getItem(53) != null) {
-            // Next page
             pageNumber++;
             build();
         } else if (slot == 47) {
             if (selectionMode == SelectionMode.ITEMS) {
-                // Toggle between vanilla and custom items
-                showingCustomItems = !showingCustomItems;
+                selectedItemType = selectedItemType.next();
                 pageNumber = 0; // Reset to first page when switching views
                 build();
             }
@@ -270,7 +318,7 @@ public class ItemSelectionPage extends AbstractGUIPage {
         String itemId = "";
         ItemStack clickedItem = inventory.getItem(slot);
 
-        if (showingCustomItems) {
+        if (selectedItemType.getGroup() == FilterGroup.CUSTOM) {
             try {
                 PersistentDataContainer dataContainer = clickedItem.getItemMeta().getPersistentDataContainer();
                 NamespacedKey key = new NamespacedKey(PowerMobsPlugin.getInstance(), "custom-id");
@@ -328,7 +376,7 @@ public class ItemSelectionPage extends AbstractGUIPage {
 
         // Store the selected ability information in a way that BulkItemSelectionPage can handle
         session.setSelectedItemId(selectedAbilityId);
-        session.setSelectedItemType("ability"); // New type for abilities
+        session.setSelectedItemType("ability");
 
         // Create a display item for the ability (similar to how items are handled)
         ItemStack abilityDisplayItem = createAbilityDisplayItem(selectedAbilityId, selectedAbility);
@@ -349,14 +397,33 @@ public class ItemSelectionPage extends AbstractGUIPage {
     }
 
     public enum CustomItemType {
-        CUSTOM,
-        WEAPONS,
-        ARMOR,
-        UNIQUES
+        VANILLA(FilterGroup.VANILLA),
+        VANILLA_ARMOR(FilterGroup.VANILLA),
+        VANILLA_WEAPONS(FilterGroup.VANILLA),
+        VANILLA_OTHER(FilterGroup.VANILLA),
+
+        CUSTOM(FilterGroup.CUSTOM),
+        ARMOR(FilterGroup.CUSTOM),
+        WEAPONS(FilterGroup.CUSTOM),
+        UNIQUES(FilterGroup.CUSTOM);
+
+        private final FilterGroup group;
+
+        CustomItemType(FilterGroup group) {
+            this.group = group;
+        }
+        public FilterGroup getGroup() { return group; }
+
+        public CustomItemType next() { CustomItemType[] values = CustomItemType.values(); return values[(this.ordinal() + 1) % values.length]; }
+    }
+
+    public enum FilterGroup {
+        VANILLA,
+        CUSTOM
     }
 
     public enum SelectionMode {
-        ITEMS,     // Original item selection mode
-        ABILITIES  // New ability selection mode
+        ITEMS, 
+        ABILITIES 
     }
 }

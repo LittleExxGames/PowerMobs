@@ -683,6 +683,35 @@ equipment:
           potion-duration: 40
           potion-level: 1
           chance: 0.4  
+    
+    starved-blade:
+      material: STONE_SWORD
+      name: "&8Starved Blade"
+      lore:
+        - "&4Burried for ages with its courrupted wielder"
+        - "&4Craving flesh, it feeds on those it strikes"
+      enchantments:
+        - type: SHARPNESS
+          level: 5
+        - type: UNBREAKING
+          level: 10    
+      effects:
+        hunger-strike:
+          trigger: ON_HIT
+          effect: POTION
+          target: VICTIM
+          potion-type: HUNGER
+          potion-duration: 10
+          potion-level: 3
+          chance: 0.5
+        flesh-feast:
+          trigger: ON_HIT
+          effect: POTION
+          target: VICTIM
+          potion-type: POISON 
+          potion-duration: 10
+          potion-level: 3
+          chance: 0.5
 
     blue-dragon-sword:
       material: DIAMOND_SWORD
@@ -816,6 +845,19 @@ equipment:
           operation: ADD_NUMBER
         - type: ARMOR_TOUGHNESS
           amount: 3
+          operation: ADD_NUMBER
+    
+    water-waders:
+      material: IRON_BOOTS
+      name: "&bWater Waders"
+      lore:
+        - "&7Nobody can say you are out of your depth!"
+      enchantments:
+        - type: DEPTH_STRIDER
+          level: 8
+      attributes:
+        - type: ARMOR
+          amount: 4
           operation: ADD_NUMBER
 
     long-fall-boots:
@@ -1335,3 +1377,62 @@ equipment:
           chance: 0.1
           healing: 6.0
           cooldown: 30
+
+    phantom-charm:
+      material: PHANTOM_MEMBRANE
+      name: "&9Phantom Charm"
+      lore:
+        - "&7Creatures once a curse, now a blessing..."
+        - "&7Embued with the soul of a phantom"
+      enchantments:
+        - type: UNBREAKING
+          level: 3
+      effects:
+        glide-ability:
+          trigger: HOTBAR
+          effect: POTION
+          target: SELF
+          potion-type: SLOW_FALLING
+          potion-duration: 15
+          potion-level: 1
+          chance: 1.0
+        ascend:
+          trigger: RIGHT_CLICK
+          effect: POTION
+          target: SELF
+          potion-type: LEVITATION
+          potion-duration: 5
+          chance: 1.0
+        phantom-cry:
+          trigger: RIGHT_CLICK
+          effect: SOUND
+          target: SELF
+          sound-type: PHANTOM_AMBIENT
+          sound-volume: 0.2
+          sound-pitch: 1.0
+          chance: 1.0
+
+    heavy-stone:
+      material: STONE
+      name: "&8Heavy Stone"
+      lore:
+        - "&7Somehow keeps you grounded"
+      effects:
+        grounded:
+          trigger: INVENTORY
+          effect: IMMUNITY
+          target: SELF
+          immune-potion-types:
+            - LEVITATION
+          cooldown: 0
+        free-fall:
+          trigger: INVENTORY
+          effect: IMMUNITY
+          target: SELF
+          immune-potion-types:
+            - SLOW_FALLING
+          cooldown: 0    
+      unbreakable: true
+
+      
+
