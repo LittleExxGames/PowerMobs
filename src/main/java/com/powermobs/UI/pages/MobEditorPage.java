@@ -448,7 +448,7 @@ public class MobEditorPage extends AbstractGUIPage {
             // Single value
             int amount = (Integer) value;
             tempMobConfig.setMinHealth(amount);
-            tempMobConfig.setMinHealth(amount);
+            tempMobConfig.setMaxHealth(amount);
         }
     }
 
@@ -464,7 +464,7 @@ public class MobEditorPage extends AbstractGUIPage {
             // Single value
             double amount = (Double) value;
             tempMobConfig.setMinDamageMultiplier(amount);
-            tempMobConfig.setMinDamageMultiplier(amount);
+            tempMobConfig.setMaxDamageMultiplier(amount);
         }
     }
 
@@ -480,7 +480,7 @@ public class MobEditorPage extends AbstractGUIPage {
             // Single value
             double amount = (Double) value;
             tempMobConfig.setMinSpeedMultiplier(amount);
-            tempMobConfig.setMinSpeedMultiplier(amount);
+            tempMobConfig.setMaxSpeedMultiplier(amount);
         }
     }
 

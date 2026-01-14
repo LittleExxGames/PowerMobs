@@ -234,22 +234,39 @@ public class TeleportAbility extends AbstractAbility implements Listener {
      * @return A safe teleport location, or null if none found
      */
     private Location findAwayTeleportLocation(Location current) {
-        for (int i = 0; i < 10; i++) {
-            double distance = this.random.nextDouble() * this.maxAwayDistance;
+        List<PotentialLocation> candidates = new ArrayList<>();
+
+        // Far away positions
+        for (int i = 0; i < 7; i++) {
+            double distance = (0.5 + this.random.nextDouble() * 0.5) * this.maxAwayDistance; // 50-100% of max
             double angle = this.random.nextDouble() * 2 * Math.PI;
+            candidates.add(new PotentialLocation(
+                    current.getX() + distance * Math.cos(angle),
+                    current.getZ() + distance * Math.sin(angle),
+                    current.getY()
+            ));
+        }
 
-            double x = current.getX() + distance * Math.cos(angle);
-            double z = current.getZ() + distance * Math.sin(angle);
+        // Mid-range positions
+        for (int i = 0; i < 3; i++) {
+            double distance = this.random.nextDouble() * this.maxAwayDistance * 0.5; // 0-50% of max
+            double angle = this.random.nextDouble() * 2 * Math.PI;
+            candidates.add(new PotentialLocation(
+                    current.getX() + distance * Math.cos(angle),
+                    current.getZ() + distance * Math.sin(angle),
+                    current.getY()
+            ));
+        }
 
-            Location potential = new Location(current.getWorld(), x, current.getY(), z);
-
-            // Find the ground
-            potential = findSafeY(potential);
-
-            if (potential != null) {
-                return potential;
+        // Try candidates in order
+        for (PotentialLocation candidate : candidates) {
+            Location potential = new Location(current.getWorld(), candidate.x, candidate.y, candidate.z);
+            Location safe = findSafeYWithinRadius(current, potential, this.maxAwayDistance);
+            if (safe != null) {
+                return safe;
             }
         }
+
         return null;
     }
 
@@ -265,28 +282,37 @@ public class TeleportAbility extends AbstractAbility implements Listener {
         }
 
         Location playerLoc = player.getLocation();
+        final double maxNearPlayerRadius = 8.0;
 
-        // Try to find a safe spot within 3-8 blocks of the player
-        for (int i = 0; i < 15; i++) {
-            // Random distance between 3 and 8 blocks from player
-            double distance = 3 + this.random.nextDouble() * 5;
-            double angle = this.random.nextDouble() * 2 * Math.PI;
+        // Generate candidates in a ring around the player (avoids being too close or too far)
+        List<PotentialLocation> candidates = new ArrayList<>();
 
-            double x = playerLoc.getX() + distance * Math.cos(angle);
-            double z = playerLoc.getZ() + distance * Math.sin(angle);
+        for (int i = 0; i < 12; i++) {
+            double angle = (Math.PI * 2 * i) / 12.0; // Evenly distributed angles
+            double distance = 4 + this.random.nextDouble() * 3; // 4-7 blocks
 
-            Location potential = new Location(playerLoc.getWorld(), x, playerLoc.getY(), z);
+            candidates.add(new PotentialLocation(
+                    playerLoc.getX() + distance * Math.cos(angle),
+                    playerLoc.getZ() + distance * Math.sin(angle),
+                    playerLoc.getY()
+            ));
+        }
 
-            // Find the ground
-            potential = findSafeY(potential);
+        // Shuffle for randomness but with better coverage
+        Collections.shuffle(candidates, this.random);
 
-            if (potential != null) {
-                return potential;
+        // Try first 10 shuffled candidates
+        for (int i = 0; i < Math.min(10, candidates.size()); i++) {
+            PotentialLocation candidate = candidates.get(i);
+            Location potential = new Location(playerLoc.getWorld(), candidate.x, candidate.y, candidate.z);
+            Location safe = findSafeYWithinRadius(playerLoc, potential, maxNearPlayerRadius);
+            if (safe != null) {
+                return safe;
             }
         }
 
-        // If no safe spot found nearby, try the player's exact location area
-        return findSafeY(playerLoc.clone());
+        // Fallback: try player's exact location
+        return findSafeYWithinRadius(playerLoc, playerLoc.clone(), maxNearPlayerRadius);
     }
 
     /**
@@ -315,33 +341,97 @@ public class TeleportAbility extends AbstractAbility implements Listener {
     }
 
     /**
-     * Finds a safe Y coordinate for a location
-     *
-     * @param location The location to check
-     * @return A safe location, or null if none was found
+     * Optimized safe Y finder with reduced block access
      */
-    private Location findSafeY(Location location) {
-        if (location.getWorld() == null) {
+    private Location findSafeYWithinRadius(Location origin, Location location, double maxRadius) {
+        if (origin == null || location == null || location.getWorld() == null || origin.getWorld() == null) {
+            return null;
+        }
+        if (origin.getWorld() != location.getWorld()) {
             return null;
         }
 
-        // Start at current Y and look down
-        int startY = Math.min(location.getBlockY(), location.getWorld().getMaxHeight() - 2);
+        double maxRadiusSq = maxRadius * maxRadius;
+        double dx = location.getX() - origin.getX();
+        double dz = location.getZ() - origin.getZ();
+        double horizontalSq = (dx * dx) + (dz * dz);
 
-        for (int y = startY; y > location.getWorld().getMinHeight() + 1; y--) {
-            location.setY(y);
+        if (horizontalSq > maxRadiusSq) {
+            return null;
+        }
 
-            if (location.getBlock().getType().isSolid() &&
-                    !location.clone().add(0, 1, 0).getBlock().getType().isSolid() &&
-                    !location.clone().add(0, 2, 0).getBlock().getType().isSolid()) {
+        double maxVertical = Math.sqrt(maxRadiusSq - horizontalSq);
+        World world = location.getWorld();
 
-                // Found a solid block with 2 air blocks above it
-                return location.clone().add(0.5, 1, 0.5);
+        int worldMaxY = world.getMaxHeight() - 2;
+        int worldMinY = world.getMinHeight() + 1;
+        int minAllowedY = (int) Math.ceil(origin.getY() - maxVertical);
+        int maxAllowedY = (int) Math.floor(origin.getY() + maxVertical);
+        int minY = Math.max(worldMinY, minAllowedY);
+        int maxY = Math.min(worldMaxY, maxAllowedY);
+
+        if (minY > maxY) {
+            return null;
+        }
+
+        int startY = Math.min(Math.max(location.getBlockY(), minY), maxY);
+        int blockX = location.getBlockX();
+        int blockZ = location.getBlockZ();
+
+        // Reuse location objects to reduce GC pressure
+        Location checkLoc = new Location(world, blockX, startY, blockZ);
+        Location aboveLoc1 = new Location(world, blockX, startY + 1, blockZ);
+        Location aboveLoc2 = new Location(world, blockX, startY + 2, blockZ);
+
+        // Spiral search from starting Y
+        for (int offset = 0; offset <= Math.max(startY - minY, maxY - startY); offset++) {
+            // Check below
+            int yBelow = startY - offset;
+            if (yBelow >= minY) {
+                checkLoc.setY(yBelow);
+                aboveLoc1.setY(yBelow + 1);
+                aboveLoc2.setY(yBelow + 2);
+
+                // Single block access per level - cache the results
+                if (checkLoc.getBlock().getType().isSolid()
+                        && !aboveLoc1.getBlock().getType().isSolid()
+                        && !aboveLoc2.getBlock().getType().isSolid()) {
+
+                    Location result = new Location(world, blockX + 0.5, yBelow + 1, blockZ + 0.5);
+                    if (result.distanceSquared(origin) <= maxRadiusSq) {
+                        return result;
+                    }
+                }
+            }
+
+            // Check above
+            if (offset > 0) {
+                int yAbove = startY + offset;
+                if (yAbove <= maxY) {
+                    checkLoc.setY(yAbove);
+                    aboveLoc1.setY(yAbove + 1);
+                    aboveLoc2.setY(yAbove + 2);
+
+                    if (checkLoc.getBlock().getType().isSolid()
+                            && !aboveLoc1.getBlock().getType().isSolid()
+                            && !aboveLoc2.getBlock().getType().isSolid()) {
+
+                        Location result = new Location(world, blockX + 0.5, yAbove + 1, blockZ + 0.5);
+                        if (result.distanceSquared(origin) <= maxRadiusSq) {
+                            return result;
+                        }
+                    }
+                }
             }
         }
 
         return null;
     }
+
+    /**
+     * Helper class to store potential teleport coordinates
+     */
+    private record PotentialLocation(double x, double z, double y) {}
 
     @Override
     public String getTitle() {
