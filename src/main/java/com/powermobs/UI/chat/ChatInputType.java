@@ -185,7 +185,25 @@ public enum ChatInputType {
             ChatColor.GRAY + "Choose what biomes from the group to add or remove." +
                     "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'add <biome>'" + ChatColor.YELLOW + " to enable a biome" +
                     "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'remove <biome>'" + ChatColor.YELLOW + " to disable a biome"
-    );
+    ),
+    ABILITY_STRING(
+            "Strings",
+            ChatColor.GRAY + "Enter the string value." +
+            "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <string>'"),
+    ABILITY_INT(
+            "Integers",
+            ChatColor.GRAY + "Enter an integer value." +
+                    "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <integer>'" +
+                    "\n" + ChatColor.YELLOW + "• Example: 'set 2'"),
+    ABILITY_DOUBLE(
+            "Doubles",
+            ChatColor.GRAY + "Enter a double value." +
+                    "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <double>'" +
+                    "\n" + ChatColor.YELLOW + "• Example: 'set 2.5'"),
+    ABILITY_BOOLEAN("Booleans",
+            ChatColor.GRAY + "Enter as true or false." +
+                    "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <boolean>'" +
+                    "\n" + ChatColor.YELLOW + "• Example: 'set t' or 'set false'");
 
     private final String displayName;
     private final String instructions;

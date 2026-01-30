@@ -44,8 +44,17 @@ Customize your mobs in `mobsconfig.yml` (Can be done in game UI)
 - Each mob can define stats, abilities, equipment, drops, and detailed spawn conditions.
 
 ### Abilities
-Defines ability parameters in `abilitiesconfig.yml` such as:
+Defines ability defaults in `abilitiesconfig.yml` such as:
 - Radiuses, chances, cooldowns, damage, durations, and more
+
+You can also override these settings per mob:
+
+- **Predefined mobs** (`mobsconfig.yml`): `abilities:` can be either a basic list of IDs or a map of ability settings for each ability ID.
+
+- **Random mobs** (`config.yml`): `possible-abilities:` for selection.
+
+
+Priority order is: Per-mod defined → defaults from `abilitiesconfig.yml` → plugin defeind values.
 
 ## In-game UI
 Most random-mob settings and many mob options can be edited in-game through the GUI pages.

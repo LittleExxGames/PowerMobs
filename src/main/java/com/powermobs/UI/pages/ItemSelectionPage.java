@@ -306,7 +306,11 @@ public class ItemSelectionPage extends AbstractGUIPage {
             }
             // For abilities, slot 47 is just an info button - no action needed
         } else if (slot == 49) {
-            this.guiManager.getCurrentPlayer().setCancelAction(true);
+            PlayerSessionData session = guiManager.getCurrentPlayer();
+
+            if (session.getSelectedItemId() == null){
+                session.setCancelAction(true);
+            }
             pageManager.navigateBack(player);
         }
         return true;
@@ -342,6 +346,7 @@ public class ItemSelectionPage extends AbstractGUIPage {
         session.setSelectedItem(clickedItem.clone());
         session.getActiveItems().clear();
         session.setEditing(true);
+        session.setCancelAction(false);
         if (isEquipmentSlot(session.getItemEditType())) {
             plugin.debug("Equipment selection complete, navigating to MobEquipmentItemSettingsPage", "ui");
             pageManager.navigateBack(player);
@@ -355,7 +360,6 @@ public class ItemSelectionPage extends AbstractGUIPage {
         PowerMobsPlugin plugin = pageManager.getPlugin();
         PlayerSessionData session = guiManager.getCurrentPlayer();
 
-        // Get all available abilities (filtered)
         Map<String, Ability> allAbilities = plugin.getAbilityManager().getAbilities();
         Set<String> activeAbilities = session.getActiveItems();
         List<String> availableAbilityIds = allAbilities.keySet().stream()
@@ -363,31 +367,21 @@ public class ItemSelectionPage extends AbstractGUIPage {
                 .sorted()
                 .toList();
 
-        // Calculate which ability was clicked
         int abilityIndex = pageNumber * 45 + slot;
         if (abilityIndex >= availableAbilityIds.size()) {
             return false;
         }
 
         String selectedAbilityId = availableAbilityIds.get(abilityIndex);
-        Ability selectedAbility = allAbilities.get(selectedAbilityId);
-
         plugin.debug("Selected ability ID: " + selectedAbilityId, "ui");
 
-        // Store the selected ability information in a way that BulkItemSelectionPage can handle
+        // Store selection for AbilityConfigGUIPage
         session.setSelectedItemId(selectedAbilityId);
         session.setSelectedItemType("ability");
 
-        // Create a display item for the ability (similar to how items are handled)
-        ItemStack abilityDisplayItem = createAbilityDisplayItem(selectedAbilityId, selectedAbility);
-        session.setSelectedItem(abilityDisplayItem);
+        session.setEditing(false);
 
-        // Clear active items and mark as editing for consistency with item selection
-        session.getActiveItems().clear();
-        session.setEditing(true);
-
-        plugin.debug("Ability selection complete, navigating back to bulk selection page", "ui");
-        pageManager.navigateBack(player);
+        pageManager.navigateTo("ability_config", false, player);
         return true;
     }
 

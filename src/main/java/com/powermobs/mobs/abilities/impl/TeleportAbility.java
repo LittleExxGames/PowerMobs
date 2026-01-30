@@ -2,9 +2,9 @@ package com.powermobs.mobs.abilities.impl;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.abilities.AbstractAbility;
 import org.bukkit.*;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -25,11 +25,11 @@ public class TeleportAbility extends AbstractAbility implements Listener {
     private final String title = "Teleportation";
     private final String description = "The mob will teleport away when attacked, or to the last attacker after inactivity.";
     private final Material material = Material.ENDER_PEARL;
-    private final double chance;
-    private final double maxAwayDistance;
-    private final double maxToDistance;
-    private final int cooldown;
-    private final int inactivityTime;
+    private final double defaultChance = 0.3;
+    private final int defaultMaxAwayDistance = 10;
+    private final int defaultMaxToDistance = 100;
+    private final int defaultCooldown = 5;
+    private final int defaultInactivityTime = 30;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
     private final Map<UUID, PlayerAttackerInfo> lastAttackers = new HashMap<>();
     private final Map<UUID, BukkitRunnable> inactivityTasks = new HashMap<>();
@@ -42,22 +42,6 @@ public class TeleportAbility extends AbstractAbility implements Listener {
      */
     public TeleportAbility(PowerMobsPlugin plugin) {
         super(plugin, "teleport");
-
-        ConfigurationSection config = plugin.getConfigManager().getAbilitiesConfigManager().getConfig().getConfigurationSection("abilities.teleport");
-
-        if (config != null) {
-            this.chance = config.getDouble("chance", 0.3);
-            this.maxAwayDistance = config.getDouble("max-away-distance", 10.0);
-            this.maxToDistance = config.getDouble("max-to-distance", 100.0);
-            this.cooldown = config.getInt("cooldown", 5);
-            this.inactivityTime = config.getInt("inactivity-time", 30);
-        } else {
-            this.chance = 0.3;
-            this.maxAwayDistance = 10.0;
-            this.maxToDistance = 100.0;
-            this.cooldown = 5;
-            this.inactivityTime = 30;
-        }
 
         // Register events
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -101,6 +85,12 @@ public class TeleportAbility extends AbstractAbility implements Listener {
             return;
         }
 
+        final double chance = powerMob.getAbilityDouble(this.id, "chance", this.defaultChance);
+        final int maxAwayDistance = powerMob.getAbilityInt(this.id, "max-away-distance", this.defaultMaxAwayDistance);
+        final int maxToDistance = powerMob.getAbilityInt(this.id, "max-to-distance", this.defaultMaxToDistance);
+        final int cooldownSeconds = powerMob.getAbilityInt(this.id, "cooldown", this.defaultCooldown);
+        final int inactivityTimeSeconds = powerMob.getAbilityInt(this.id, "inactivity-time", this.defaultInactivityTime);
+
         UUID mobUuid = powerMob.getEntityUuid();
 
         // Try to find the player attacker
@@ -131,24 +121,24 @@ public class TeleportAbility extends AbstractAbility implements Listener {
             }
 
             // Start new inactivity task
-            scheduleInactivityTeleport(powerMob, entity);
+            scheduleInactivityTeleport(powerMob, entity, cooldownSeconds, inactivityTimeSeconds, maxToDistance);
         }
 
         // Check cooldown
         if (this.cooldowns.containsKey(mobUuid)) {
             long lastUse = this.cooldowns.get(mobUuid);
-            if (System.currentTimeMillis() - lastUse < this.cooldown * 1000L) {
+            if (System.currentTimeMillis() - lastUse < cooldownSeconds * 1000L) {
                 return;
             }
         }
 
         // Random chance to trigger immediate teleport away
-        if (Math.random() > this.chance) {
+        if (Math.random() > chance) {
             return;
         }
 
         // Teleport away from attacker
-        Location target = findAwayTeleportLocation(entity.getLocation());
+        Location target = findAwayTeleportLocation(entity.getLocation(), maxAwayDistance);
         if (target != null) {
             performTeleport(entity, target, mobUuid);
         }
@@ -160,7 +150,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
      * @param powerMob The power mob
      * @param entity   The living entity
      */
-    private void scheduleInactivityTeleport(PowerMob powerMob, LivingEntity entity) {
+    private void scheduleInactivityTeleport(PowerMob powerMob, LivingEntity entity, int cooldownSeconds, int inactivityTimeSeconds, int maxToDistance) {
         UUID mobUuid = powerMob.getEntityUuid();
 
         BukkitRunnable task = new BukkitRunnable() {
@@ -183,9 +173,9 @@ public class TeleportAbility extends AbstractAbility implements Listener {
                 // Check cooldown
                 if (cooldowns.containsKey(mobUuid)) {
                     long lastUse = cooldowns.get(mobUuid);
-                    if (System.currentTimeMillis() - lastUse < cooldown * 1000L) {
+                    if (System.currentTimeMillis() - lastUse < cooldownSeconds * 1000L) {
                         // Reschedule for later
-                        scheduleInactivityTeleport(powerMob, entity);
+                        scheduleInactivityTeleport(powerMob, entity, cooldownSeconds, inactivityTimeSeconds, maxToDistance);
                         return;
                     }
                 }
@@ -203,7 +193,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
                             inactivityTasks.remove(mobUuid);
                             return; // different world: do not follow-teleport
                         }
-                        double maxToDistSq = maxToDistance * maxToDistance;
+                        int maxToDistSq = maxToDistance * maxToDistance;
                         if (entity.getLocation().distanceSquared(player.getLocation()) > maxToDistSq) {
                             // Too far to follow via teleport, stop chasing
                             inactivityTasks.remove(mobUuid);
@@ -223,7 +213,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
             }
         };
 
-        task.runTaskLater(this.plugin, this.inactivityTime * 20L); // Convert seconds to ticks
+        task.runTaskLater(this.plugin, inactivityTimeSeconds * 20L); // Convert seconds to ticks
         this.inactivityTasks.put(mobUuid, task);
     }
 
@@ -233,12 +223,12 @@ public class TeleportAbility extends AbstractAbility implements Listener {
      * @param current The current location
      * @return A safe teleport location, or null if none found
      */
-    private Location findAwayTeleportLocation(Location current) {
+    private Location findAwayTeleportLocation(Location current, int maxAwayDistance) {
         List<PotentialLocation> candidates = new ArrayList<>();
 
         // Far away positions
         for (int i = 0; i < 7; i++) {
-            double distance = (0.5 + this.random.nextDouble() * 0.5) * this.maxAwayDistance; // 50-100% of max
+            double distance = (0.5 + this.random.nextDouble() * 0.5) * maxAwayDistance; // 50-100% of max
             double angle = this.random.nextDouble() * 2 * Math.PI;
             candidates.add(new PotentialLocation(
                     current.getX() + distance * Math.cos(angle),
@@ -249,7 +239,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
 
         // Mid-range positions
         for (int i = 0; i < 3; i++) {
-            double distance = this.random.nextDouble() * this.maxAwayDistance * 0.5; // 0-50% of max
+            double distance = this.random.nextDouble() * maxAwayDistance * 0.5; // 0-50% of max
             double angle = this.random.nextDouble() * 2 * Math.PI;
             candidates.add(new PotentialLocation(
                     current.getX() + distance * Math.cos(angle),
@@ -261,7 +251,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
         // Try candidates in order
         for (PotentialLocation candidate : candidates) {
             Location potential = new Location(current.getWorld(), candidate.x, candidate.y, candidate.z);
-            Location safe = findSafeYWithinRadius(current, potential, this.maxAwayDistance);
+            Location safe = findSafeYWithinRadius(current, potential, maxAwayDistance);
             if (safe != null) {
                 return safe;
             }
@@ -282,7 +272,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
         }
 
         Location playerLoc = player.getLocation();
-        final double maxNearPlayerRadius = 8.0;
+        final int maxNearPlayerRadius = 8;
 
         // Generate candidates in a ring around the player (avoids being too close or too far)
         List<PotentialLocation> candidates = new ArrayList<>();
@@ -343,7 +333,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
     /**
      * Optimized safe Y finder with reduced block access
      */
-    private Location findSafeYWithinRadius(Location origin, Location location, double maxRadius) {
+    private Location findSafeYWithinRadius(Location origin, Location location, int maxRadius) {
         if (origin == null || location == null || location.getWorld() == null || origin.getWorld() == null) {
             return null;
         }
@@ -453,9 +443,18 @@ public class TeleportAbility extends AbstractAbility implements Listener {
         return List.of();
     }
 
+    @Override
+    public Map<String, AbilityConfigField> getConfigSchema() {
+        return Map.of(
+                "chance", AbilityConfigField.chance("chance", this.defaultChance, "Chance to trigger teleport upon receiving damage"),
+                "max-away-distance", AbilityConfigField.integer("max-away-distance", this.defaultMaxAwayDistance, "Max away distance the teleport can go when struck"),
+                "max-to-distance", AbilityConfigField.integer("max-to-distance", this.defaultMaxToDistance, "Min to distance the teleport can go when struck"),
+                "cooldown", AbilityConfigField.integer("cooldown", this.defaultCooldown, "Cooldown for teleportation upon receiving damage"),
+                "inactivity-time",AbilityConfigField.integer("inactivity-time", this.defaultInactivityTime, "Time until teleporting to last attacker when not attacked"));
+    }
+
     /**
      * Stores information about the last player attacker
      */
-    private record PlayerAttackerInfo(UUID playerUuid, long lastAttackTime) {
-    }
+    private record PlayerAttackerInfo(UUID playerUuid, long lastAttackTime) { }
 }

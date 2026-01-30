@@ -65,12 +65,16 @@ random-mobs:
     - ZOMBIE
     - ENDERMAN
   possible-abilities:
-    - fire-aura
-    - teleport
-    - leap
-    - lightning-strike
-    - regeneration
-  ability-range: 1-3
+    fire-aura: {}
+    invisibility: {}
+    launchpad: {}
+    leap: {}
+    lightning-strike: {}
+    regeneration: {}
+    summon-minions: {}
+    teleport: {}
+    web-shot: {}
+  ability-range: 2-6
   abilities-weight: 100
   health-multiplier: 1.5-3.0
   health-weight: 100
@@ -178,11 +182,11 @@ random-mobs:
     - the Undying
   glowing: true
   glow-time: '100'
-  drop-count: 0-1
-  drop-weight: 100
+  drop-count: 1-4
+  drop-weight: 20
   exp-chance: 1.0
-  exp-amount: 10-15
-  exp-weight: 100
+  exp-amount: 10-25
+  exp-weight: 25
   drops:
     - item: DIAMOND
       chance: 0.3
@@ -192,18 +196,6 @@ random-mobs:
       chance: 0.5
       amount: 1-5
       amount-weight: 100
-    - item: NETHERITE_SCRAP
-      chance: 0.1
-      amount: 1
-      amount-weight: 100
-    - item: ACACIA_SLAB-1
-      chance: 1.0
-      amount: 1
-      amount-weight: 100
-    - item: AMETHYST_CLUSTER-1
-      chance: 1.0
-      amount: 1
-      amount-weight: 5
     - item: ENCHANTED_BOOK-1
       chance: 0.2
       amount: 1
@@ -212,14 +204,78 @@ random-mobs:
         - type: SHARPNESS
           level: 3-5
           weight: 100
-    - item: BOW-1
+    - item: AMETHYST_CLUSTER-2
+      chance: 1.0
+      amount: 6-12
+      amount-weight: 5
+    - item: NETHERITE_SCRAP-1
+      chance: 0.05
+      amount: 1-4
+      amount-weight: 10
+    - item: BOW-2
       chance: 1.0
       amount: 1
       amount-weight: 100
       enchantments:
         - type: SHARPNESS
-          level: 10
-          weight: 100
+          level: 1-10
+          weight: 10
+    - item: childrens-sparring-sword
+      chance: 1.0
+      amount: 1
+      amount-weight: 100
+    - item: hunters-bow
+      chance: 0.25
+      amount: 1
+      amount-weight: 100
+    - item: warriors-might
+      chance: 0.25
+      amount: 1
+      amount-weight: 100
+    - item: BLAZE_POWDER-1
+      chance: 0.4
+      amount: 16-32
+      amount-weight: 100
+    - item: EXPERIENCE_BOTTLE-1
+      chance: 0.5
+      amount: 8-16
+      amount-weight: 100
+    - item: GOLDEN_APPLE-1
+      chance: 0.75
+      amount: 1-3
+      amount-weight: 100
+    - item: NAUTILUS_SHELL-1
+      chance: 0.75
+      amount: 1-4
+      amount-weight: 50
+    - item: SHULKER_SHELL-1
+      chance: 0.01
+      amount: 1-2
+      amount-weight: 20
+    - item: boots-of-alure
+      chance: 0.2
+      amount: 1
+      amount-weight: 100
+    - item: healers-wand
+      chance: 0.02
+      amount: 1
+      amount-weight: 100
+    - item: cursed-coin
+      chance: 0.05
+      amount: 1
+      amount-weight: 100
+    - item: delectable-berries
+      chance: 0.45
+      amount: 4-12
+      amount-weight: 100
+    - item: GOLDEN_APPLE-2
+      chance: 0.25
+      amount: 1-2
+      amount-weight: 100
+    - item: spawn-blocker-ward-stone
+      chance: 0.1
+      amount: 1
+      amount-weight: 100
   spawn-conditions:
     spawn-chance: 0.05
     spawn-delay: 500-1200

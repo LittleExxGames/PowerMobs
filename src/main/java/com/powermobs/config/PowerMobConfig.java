@@ -20,7 +20,7 @@ public class PowerMobConfig implements IPowerMobConfig {
 
     private final String id;
     private final Map<String, Double> attributes;
-    private final List<String> possibleAbilities;
+    private final Map<String, Map<String, Object>> possibleAbilities;
     private final Map<String, List<EquipmentItemConfig>> possibleEquipment;
     private final List<CustomDropConfig> drops;
     private EntityType entityType;
@@ -116,7 +116,22 @@ public class PowerMobConfig implements IPowerMobConfig {
         }
 
         // Abilities
-        this.possibleAbilities = section.getStringList("abilities");
+        this.possibleAbilities = new LinkedHashMap<>();
+
+        // For default and defined abilities:
+        // - abilities: ["fire-aura", "teleport"]
+        // - abilities: { fire-aura: { radius: 5 }, teleport: { chance: 0.2 } }
+        ConfigurationSection abilitiesSection = section.getConfigurationSection("abilities");
+        if (abilitiesSection != null) {
+            for (String abilityId : abilitiesSection.getKeys(false)) {
+                ConfigurationSection abilitySettingsSection = abilitiesSection.getConfigurationSection(abilityId);
+                if (abilitySettingsSection != null) {
+                    this.possibleAbilities.put(abilityId, new LinkedHashMap<>(abilitySettingsSection.getValues(false)));
+                } else {
+                    this.possibleAbilities.put(abilityId, Collections.emptyMap());
+                }
+            }
+        }
 
         // Equipment
         this.possibleEquipment = new LinkedHashMap<>();
@@ -199,7 +214,14 @@ public class PowerMobConfig implements IPowerMobConfig {
         this.drops = new ArrayList<>();
         List<Map<?, ?>> dropsList = section.getMapList("drops");
         for (Map<?, ?> dropMap : dropsList) {
-            Map<String, Object> castedDropMap = (Map<String, Object>) dropMap;
+            Map<String, Object> castedDropMap = new HashMap<>();
+            for (Map.Entry<?, ?> entry : dropMap.entrySet()) {
+                Object rawKey = entry.getKey();
+                if (rawKey == null) {
+                    continue;
+                }
+                castedDropMap.put(String.valueOf(rawKey), entry.getValue());
+            }
             CustomDropConfig drop = new CustomDropConfig(castedDropMap);
             this.drops.add(drop);
         }
@@ -228,7 +250,15 @@ public class PowerMobConfig implements IPowerMobConfig {
         this.maxSpeedMultiplier = powerMob.getMaxSpeedMultiplier();
         this.speedWeight = powerMob.getSpeedWeight();
         this.attributes = new LinkedHashMap<>(powerMob.getAttributes());
-        this.possibleAbilities = new ArrayList<>(powerMob.getPossibleAbilities());
+        this.possibleAbilities = new LinkedHashMap<>();
+        if (powerMob.getPossibleAbilities() != null) {
+            for (Map.Entry<String, Map<String, Object>> entry : powerMob.getPossibleAbilities().entrySet()) {
+                Map<String, Object> inner = entry.getValue() != null
+                        ? new LinkedHashMap<>(entry.getValue())
+                        : Collections.emptyMap();
+                this.possibleAbilities.put(entry.getKey(), inner);
+            }
+        }
         this.possibleEquipment = new LinkedHashMap<>();
         for (Map.Entry<String, List<EquipmentItemConfig>> e : powerMob.getPossibleEquipment().entrySet()) {
             List<EquipmentItemConfig> copiedList = new ArrayList<>();
@@ -278,7 +308,7 @@ public class PowerMobConfig implements IPowerMobConfig {
 
         // Initialize empty collections
         this.attributes = new LinkedHashMap<>();
-        this.possibleAbilities = new ArrayList<>();
+        this.possibleAbilities = new LinkedHashMap<>();
         this.possibleEquipment = new LinkedHashMap<>();
         this.possibleEquipment.put("possible-weapons", new ArrayList<>());
         this.possibleEquipment.put("possible-offhands", new ArrayList<>());
@@ -350,7 +380,16 @@ public class PowerMobConfig implements IPowerMobConfig {
         map.put("attributes", this.attributes);
 
         // Abilities as a list of strings
-        map.put("abilities", this.possibleAbilities);
+        if (this.possibleAbilities != null && !this.possibleAbilities.isEmpty()) {
+            Map<String, Object> abilitiesMap = new LinkedHashMap<>();
+            for (String abilityId : this.possibleAbilities.keySet()) {
+                Map<String, Object> settings = this.possibleAbilities.get(abilityId);
+                abilitiesMap.put(abilityId, settings != null ? settings : Collections.emptyMap());
+            }
+            map.put("abilities", abilitiesMap);
+        } else {
+            map.put("abilities", this.possibleAbilities);
+        }
 
         // Equipment
         Map<String, Object> equipOut = new LinkedHashMap<>();

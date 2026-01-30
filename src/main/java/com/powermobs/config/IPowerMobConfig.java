@@ -44,7 +44,7 @@ public interface IPowerMobConfig {
 
     List<String> getNameSuffixes();
 
-    List<String> getPossibleAbilities();
+    Map<String, Map<String, Object>> getPossibleAbilities();
 
     SpawnCondition getSpawnCondition();
 

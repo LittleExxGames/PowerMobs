@@ -19,7 +19,7 @@ import java.util.*;
 public class RandomMobConfig implements IPowerMobConfig {
 
     private final Set<EntityType> allowedTypes;
-    private final List<String> possibleAbilities;
+    private final Map<String, Map<String, Object>> possibleAbilities;
     private final Map<String, List<EquipmentItemConfig>> possibleEquipment;
     private final List<String> namePrefixes;
     private final List<String> nameSuffixes;
@@ -65,7 +65,7 @@ public class RandomMobConfig implements IPowerMobConfig {
         this.minAbilities = 1;
         this.maxAbilities = 1;
         this.abilitiesWeight = 100;
-        this.possibleAbilities = new ArrayList<>();
+        this.possibleAbilities = new LinkedHashMap<>();
         this.minHealthMultiplier = 1.5;
         this.maxHealthMultiplier = 2.0;
         this.healthWeight = 100;
@@ -118,7 +118,15 @@ public class RandomMobConfig implements IPowerMobConfig {
         this.minAbilities = copy.minAbilities;
         this.maxAbilities = copy.maxAbilities;
         this.abilitiesWeight = copy.abilitiesWeight;
-        this.possibleAbilities = new ArrayList<>(copy.possibleAbilities);
+        this.possibleAbilities = new LinkedHashMap<>();
+        if (copy.getPossibleAbilities() != null) {
+            for (Map.Entry<String, Map<String, Object>> entry : copy.getPossibleAbilities().entrySet()) {
+                Map<String, Object> inner = entry.getValue() != null
+                        ? new LinkedHashMap<>(entry.getValue())
+                        : Collections.emptyMap();
+                this.possibleAbilities.put(entry.getKey(), inner);
+            }
+        }
         this.minHealthMultiplier = copy.minHealthMultiplier;
         this.maxHealthMultiplier = copy.maxHealthMultiplier;
         this.healthWeight = copy.healthWeight;
@@ -174,7 +182,22 @@ public class RandomMobConfig implements IPowerMobConfig {
         }
 
         // Load ability configuration
-        this.possibleAbilities = section.getStringList("possible-abilities");
+        this.possibleAbilities = new LinkedHashMap<>();
+
+        // For default and defined abilities:
+        // - abilities: ["fire-aura", "teleport"]
+        // - abilities: { fire-aura: { radius: 5 }, teleport: { chance: 0.2 } }
+        ConfigurationSection abilitiesSection = section.getConfigurationSection("possible-abilities");
+        if (abilitiesSection != null) {
+            for (String abilityId : abilitiesSection.getKeys(false)) {
+                ConfigurationSection abilitySettingsSection = abilitiesSection.getConfigurationSection(abilityId);
+                if (abilitySettingsSection != null) {
+                    this.possibleAbilities.put(abilityId, new LinkedHashMap<>(abilitySettingsSection.getValues(false)));
+                } else {
+                    this.possibleAbilities.put(abilityId, Collections.emptyMap());
+                }
+            }
+        }
 
         String abilityRange = section.getString("ability-range");
         if (abilityRange != null) {
@@ -343,7 +366,16 @@ public class RandomMobConfig implements IPowerMobConfig {
         map.put("allowed-types", allowedTypes);
 
         // Abilities
-        map.put("possible-abilities", this.possibleAbilities);
+        if (this.possibleAbilities != null && !this.possibleAbilities.isEmpty()) {
+            Map<String, Object> abilitiesMap = new LinkedHashMap<>();
+            for (String abilityId : this.possibleAbilities.keySet()) {
+                Map<String, Object> settings = this.possibleAbilities.get(abilityId);
+                abilitiesMap.put(abilityId, settings != null ? settings : Collections.emptyMap());
+            }
+            map.put("possible-abilities", abilitiesMap);
+        } else {
+            map.put("possible-abilities", this.possibleAbilities);
+        }
         String abilityRange;
         if (this.minAbilities == this.maxAbilities) {
             abilityRange = this.minAbilities + "";

@@ -2,11 +2,11 @@ package com.powermobs.mobs.abilities.impl;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.abilities.AbstractAbility;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
@@ -27,9 +27,9 @@ public class LeapAbility extends AbstractAbility {
     private final String title = "Leap";
     private final String description = "Leaps towards a nearby player.";
     private final Material material = Material.PISTON;
-    private final double height;
-    private final double forward;
-    private final int cooldown;
+    private final double defaultHeight = 0.55;
+    private final double defaultForward = 1.2;
+    private final int defaultCooldown = 8;
     private final Map<UUID, BukkitTask> tasks = new HashMap<>();
     private final Map<UUID, Long> cooldowns = new HashMap<>();
 
@@ -40,23 +40,15 @@ public class LeapAbility extends AbstractAbility {
      */
     public LeapAbility(PowerMobsPlugin plugin) {
         super(plugin, "leap");
-
-        ConfigurationSection config = plugin.getConfigManager().getAbilitiesConfigManager().getConfig().getConfigurationSection("abilities.leap");
-
-        if (config != null) {
-            this.height = config.getDouble("height", 1.5);
-            this.forward = config.getDouble("forward", 1.2);
-            this.cooldown = config.getInt("cooldown", 8);
-        } else {
-            this.height = 1.5;
-            this.forward = 1.2;
-            this.cooldown = 8;
-        }
     }
 
     @Override
     public void apply(PowerMob powerMob) {
         UUID entityUuid = powerMob.getEntityUuid();
+
+        final double height = powerMob.getAbilityDouble(this.id, "height", this.defaultHeight);
+        final double forward = powerMob.getAbilityDouble(this.id, "forward", this.defaultForward);
+        final int cooldownSeconds = powerMob.getAbilityInt(this.id, "cooldown", this.defaultCooldown);
 
         // Cancel existing task if it exists
         if (this.tasks.containsKey(entityUuid)) {
@@ -73,7 +65,7 @@ public class LeapAbility extends AbstractAbility {
             // Check cooldown
             if (this.cooldowns.containsKey(entityUuid)) {
                 long lastUse = this.cooldowns.get(entityUuid);
-                if (System.currentTimeMillis() - lastUse < this.cooldown * 1000L) {
+                if (System.currentTimeMillis() - lastUse < cooldownSeconds * 1000L) {
                     return;
                 }
             }
@@ -125,7 +117,7 @@ public class LeapAbility extends AbstractAbility {
 
             // Calculate leap vector
             Vector direction = target.getLocation().toVector().subtract(entity.getLocation().toVector());
-            direction.normalize().multiply(this.forward).setY(this.height);
+            direction.normalize().multiply(forward).setY(height);
 
             // Apply the velocity
             entity.setVelocity(direction);
@@ -168,5 +160,14 @@ public class LeapAbility extends AbstractAbility {
     @Override
     public List<String> getStatus() {
         return List.of();
+    }
+
+    @Override
+    public Map<String, AbilityConfigField> getConfigSchema() {
+        return Map.of(
+                "height", AbilityConfigField.dbl("height", this.defaultHeight, "Leap height multiplier"),
+                "forward", AbilityConfigField.dbl("forward", this.defaultForward, "Forward velocity multiplier"),
+                "cooldown", AbilityConfigField.integer("cooldown", this.defaultCooldown, "Cooldown in seconds")
+        );
     }
 }

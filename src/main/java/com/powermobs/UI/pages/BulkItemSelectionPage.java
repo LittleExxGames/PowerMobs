@@ -6,12 +6,16 @@ import com.powermobs.UI.chat.ChatInputType;
 import com.powermobs.UI.framework.*;
 import com.powermobs.config.EquipmentItemConfig;
 import com.powermobs.config.IPowerMobConfig;
+import com.powermobs.config.PowerMobConfig;
+import com.powermobs.config.RandomMobConfig;
 import com.powermobs.mobs.abilities.Ability;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.equipment.CustomDropConfig;
 import com.powermobs.mobs.equipment.EnchantmentConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -48,7 +52,7 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
         PlayerSessionData player = guiManager.getCurrentPlayer();
         editingType = player.getItemEditType();
         updateInventoryTitle();
-        pageManager.getPlugin().debug("Building GUI for Bulk Item selection list. Type: " + editingType, "ui");
+        pageManager.getPlugin().debug("Building GUI for Bulk Item selection list. Type: " + editingType + ", filter: " + itemSelectionType, "ui");
 
         selectedMobId = guiManager.getCurrentPlayer().getSelectedMobId();
         IPowerMobConfig mobConfig;
@@ -166,36 +170,19 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 break;
             case ABILITY:
                 Map<String, Ability> allAbilities = pageManager.getPlugin().getAbilityManager().getAbilities();
+                Map<String, Map<String, Object>> possibleAbilities = mobConfig.getPossibleAbilities();
 
-                // Filter abilities to only include ones from mobConfig.getPossibleAbilities()
-                for (String abilityId : mobConfig.getPossibleAbilities()) {
+                for (String abilityId : possibleAbilities.keySet()) {
                     Ability ability = allAbilities.get(abilityId);
                     if (ability == null) {
-                        // Log warning if ability doesn't exist but continue
-                        pageManager.getPlugin().getLogger().warning("Ability '" + abilityId + "' is not a valid ability. Please remove it from being an ability through the file config.");
+                        pageManager.getPlugin().getLogger().warning(
+                                "Ability '" + abilityId + "' is not a valid ability. Please remove it from the config."
+                        );
                         continue;
                     }
-                    addAbility(abilityId, ability);
+                    addAbility(abilityId, ability, possibleAbilities);
                 }
                 break;
-//            case ABILITY:
-//                Map<String, Ability> allAbilities = pageManager.getPlugin().getAbilityManager().getAbilities();
-//                for (String ability : mobConfig.getPossibleAbilities()) {
-//                    ItemStack displayItem = new ItemStack(Material.BLAZE_POWDER);
-//                    ItemMeta meta = displayItem.getItemMeta();
-//                    meta.setDisplayName(ChatColor.LIGHT_PURPLE + ability);
-//                    List<String> lore = new ArrayList<>();
-//                    if (meta.hasLore()) {
-//                        lore.addAll(meta.getLore());
-//                    }
-//                    //TODO: add the ability to edit abilities
-//                    lore.add(ChatColor.YELLOW + "Right-click to remove");
-//                    if (delete.equals(ability)) {lore.add(ChatColor.DARK_RED + "DELETE?");}
-//                    meta.setLore(lore);
-//                    displayItem.setItemMeta(meta);
-//                    availableItems.put(ability, displayItem);
-//                }
-//                break;
             case DROPS_CONFIG: {
                 for (CustomDropConfig drop : mobConfig.getDrops()) {
                     //Custom items
@@ -256,6 +243,8 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 }
                 break;
             }
+            default:
+                break;
         }
     }
 
@@ -274,6 +263,8 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 meta.setLore(lore);
                 displayItem.setItemMeta(meta);
                 availableItems.put(value, displayItem);
+                break;
+            default:
                 break;
         }
     }
@@ -340,6 +331,8 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 item.setItemMeta(meta);
                 availableItems.put(itemId, item);
                 break;
+            default:
+                break;
         }
     }
 
@@ -369,7 +362,17 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 return;
             }
         } else if ("ability".equals(itemType)) {
-            addAbility(itemId, pageManager.getPlugin().getAbilityManager().getAbility(itemId));
+            IPowerMobConfig mobConfig;
+            if (selectedMobId != null) {
+                mobConfig = pageManager.getPlugin().getConfigManager().getPowerMob(selectedMobId);
+            } else {
+                mobConfig = pageManager.getPlugin().getConfigManager().getRandomMobConfig();
+            }
+            Ability ability = pageManager.getPlugin().getAbilityManager().getAbility(itemId);
+            if (ability != null) {
+                addAbility(itemId, ability, mobConfig.getPossibleAbilities());
+            }
+            return;
         }
 
         if (displayItem != null) {
@@ -390,19 +393,24 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
         }
     }
 
-    private void addAbility(String abilityId, Ability ability) {
+    private void addAbility(String abilityId, Ability ability, Map<String, Map<String, Object>> possibleAbilities) {
         ItemStack displayItem = new ItemStack(ability.getMaterial());
         ItemMeta meta = displayItem.getItemMeta();
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + ability.getTitle());
+
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Ability ID: " + ChatColor.WHITE + abilityId);
-        // Add ability information to lore
         lore.add(ChatColor.GRAY + "Description:");
         lore.add(ChatColor.YELLOW + ability.getDescription());
-        for (String stat : ability.getStatus()) {
-            lore.add(ChatColor.GRAY + stat);
+
+        List<String> resolvedStatus = getResolvedAbilityStatus(abilityId, ability, possibleAbilities);
+        if (!resolvedStatus.isEmpty()) {
+            lore.add(ChatColor.WHITE + "=== Config ===");
+            for (String stat : resolvedStatus) {
+                lore.add(ChatColor.GRAY + stat);
+            }
         }
-        // Later add "Click to configure"
+        // TODO Later add "Click to configure"
 
         lore.add(ChatColor.YELLOW + "Right-click to remove");
         if (delete.equals(abilityId)) {
@@ -412,6 +420,69 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
         meta.setLore(lore);
         displayItem.setItemMeta(meta);
         availableItems.put(abilityId, displayItem);
+    }
+
+    private List<String> getResolvedAbilityStatus(String abilityId, Ability ability, Map<String, Map<String, Object>> possibleAbilities) {
+        PowerMobsPlugin plugin = pageManager.getPlugin();
+        Map<String, Object> overrides = possibleAbilities.getOrDefault(abilityId, Map.of());
+
+        Map<String, Object> resolved = new LinkedHashMap<>();
+
+        if (ability != null && ability.getConfigSchema() != null) {
+            for (var entry : ability.getConfigSchema().entrySet()) {
+                AbilityConfigField field = entry.getValue();
+                if (field != null) {
+                    resolved.put(field.key(), field.defaultValue());
+                }
+            }
+        }
+
+        ConfigurationSection defaultsSection = plugin.getConfigManager()
+                .getAbilitiesConfigManager()
+                .getConfig()
+                .getConfigurationSection("abilities." + abilityId);
+
+        if (defaultsSection != null) {
+            resolved.putAll(defaultsSection.getValues(true));
+        }
+
+        Map<String, Object> flattenedOverrides = new LinkedHashMap<>();
+        flatten("", overrides, flattenedOverrides);
+        resolved.putAll(flattenedOverrides);
+
+        if (resolved.isEmpty()) {
+            return List.of();
+        }
+
+        return resolved.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey() + ": " + Objects.toString(e.getValue()))
+                .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void flatten(String prefix, Map<String, Object> source, Map<String, Object> out) {
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+            Object value = entry.getValue();
+
+            if (value instanceof ConfigurationSection section) {
+                flatten(key, new LinkedHashMap<>(section.getValues(false)), out);
+                continue;
+            }
+            if (value instanceof Map<?, ?> map) {
+                Map<String, Object> nested = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> nestedEntry : map.entrySet()) {
+                    if (nestedEntry.getKey() != null) {
+                        nested.put(String.valueOf(nestedEntry.getKey()), nestedEntry.getValue());
+                    }
+                }
+                flatten(key, nested, out);
+                continue;
+            }
+
+            out.put(key, value);
+        }
     }
 
     private ItemStack updateDelete(String id, ItemStack item) {
@@ -492,11 +563,8 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
     @Override
     public boolean handleClick(Player player, int slot, ClickType clickType) {
         if (slot >= 45) {
-            // Handle navigation and action buttons
             return handleNavigationClick(player, slot, clickType);
         }
-
-        // Handle item clicks
         return handleItemClick(player, slot, clickType);
     }
 
@@ -545,13 +613,16 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
     private boolean handleItemClick(Player player, int slot, ClickType clickType) {
         ItemStack clickedItem = inventory.getItem(slot);
         if (clickedItem == null) return false;
+
         PlayerSessionData sessionData = guiManager.getCurrentPlayer();
         int itemIndex = pageNumber * ITEMS_PER_PAGE + slot;
         List<String> itemIds = new ArrayList<>(availableItems.keySet());
         if (itemIndex >= itemIds.size()) return false;
+
         String id = itemIds.get(itemIndex);
         PowerMobsPlugin plugin = pageManager.getPlugin();
         plugin.debug("Selected Item: " + id + " at item index: " + itemIndex, "ui");
+
         if (clickType == ClickType.RIGHT) {
             if (id.equals(delete)) {
                 availableItems.remove(id);
@@ -584,7 +655,11 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                     }
                     break;
                 case ABILITY:
-                    //TODO: also include the edit of the abilities
+                    if (clickType == ClickType.LEFT) {
+                        sessionData.setSelectedItemId(id);
+                        sessionData.setEditing(false);
+                        pageManager.navigateTo("ability_config", true, player);
+                    }
                     break;
                 case DROPS_CONFIG:
                     if (clickType == ClickType.LEFT) {
@@ -592,6 +667,8 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                         sessionData.setSelectedItemId(id);
                         pageManager.navigateTo("item_drop_config", true, player);
                     }
+                    break;
+                default:
                     break;
             }
         }
@@ -632,6 +709,8 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 session.setEditing(true);
                 session.setActiveItems(new LinkedHashSet<>(availableItems.keySet()));
                 pageManager.navigateTo("item_drop_config", true, player);
+                break;
+            default:
                 break;
         }
 
@@ -680,11 +759,17 @@ public class BulkItemSelectionPage extends AbstractGUIPage {
                 mob.getPossibleEquipment().get("possible-boots").removeIf(item -> !availableItems.containsKey(item.getItem()));
                 break;
             case ABILITY:
-                mob.getPossibleAbilities().clear();
-                mob.getPossibleAbilities().addAll(availableItems.keySet());
+                Map<String, Map<String, Object>> possibleAbilities = mob.getPossibleAbilities();
+                possibleAbilities.keySet().removeIf(abilityId -> !availableItems.containsKey(abilityId));
+
+                for (String abilityId : availableItems.keySet()) {
+                    possibleAbilities.computeIfAbsent(abilityId, k -> new LinkedHashMap<>());
+                }
                 break;
             case DROPS_CONFIG:
                 mob.getDrops().removeIf(drop -> !availableItems.containsKey(drop.getItem()));
+                break;
+            default:
                 break;
         }
         if (session.getType().equals(PowerMobType.RANDOM)) {

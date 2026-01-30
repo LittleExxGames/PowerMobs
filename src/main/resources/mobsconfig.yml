@@ -53,10 +53,26 @@
 #                               # If set, replaces the base value for that attribute.
 
 # --- ABILITIES ---
-# abilities:                    # List[String] (OPTIONAL) - IDs from abilitiesconfig.yml
-#   - fire-aura
-#   - summon-minions
-#                               # Each ability is applied once when the mob is created.
+#
+# Choose which abilities this mob can use, and (optionally) override their settings.
+#
+# - If you list an ability with {} (empty), the mob uses the default settings from abilitiesconfig.yml.
+# - If you provide only some settings, the missing ones fall back to abilitiesconfig.yml.
+# - If a setting is missing from abilitiesconfig.yml too, the plugin uses its built-in default.
+#
+# Settings are chosen in this order:
+#   1) This mob's ability settings (this file)
+#   2) abilitiesconfig.yml (global defaults)
+#   3) Plugin built-in defaults (last fallback)
+#
+# Example:
+# abilities:
+#   fire-aura:
+#     radius: 4.5
+#     damage: 1.0
+#     teleport:
+#     chance: 0.5
+#   summon-minions: {}          # use defaults
 
 # --- EQUIPMENT OPTIONS ---
 # possible-equipment:           # Map (OPTIONAL) - What gear this mob can wear/use (MORE THAN ONE WILL BE IGNORED FOR NOW)
@@ -174,7 +190,10 @@ power-mobs:
     speed-weight: 100
     attributes: {}
     abilities:
-      - invisibility
+      invisibility:
+        health-threshold: 0.25
+        duration: 8
+        cooldown: 45
     possible-equipment:
       possible-weapons:
         - item: hunters-bow
@@ -490,16 +509,17 @@ power-mobs:
     speed-weight: 100
     attributes: {}
     abilities:
-      - leap
+      leap: {}
     possible-equipment:
-      possible-helmets:
-        - item: lost-adventurers-helmet
-      possible-leggings:
-        - item: lost-adventurers-leggings
       possible-weapons:
         - item: warriors-might
+      possible-offhands: []
+      possible-helmets:
+        - item: lost-adventurers-helmet
       possible-chestplates:
         - item: lost-adventurers-chestplate
+      possible-leggings:
+        - item: lost-adventurers-leggings
       possible-boots:
         - item: lost-adventurers-boots
     glowing: true
@@ -539,7 +559,7 @@ power-mobs:
         amount: 1
         amount-weight: 100
     spawn-conditions:
-      spawn-chance: 0.0
+      spawn-chance: 0.01
       spawn-delay: 500-1200
       spawn-delay-weight: 100
       replace-type-only: false
@@ -633,3 +653,219 @@ power-mobs:
           - DEEP_DARK
           - DRIPSTONE_CAVES
           - LUSH_CAVES
+  wandering-soul:
+    type: STRAY
+    name: §9Wandering Soul
+    health: 30-40
+    health-weight: 100
+    damage-multiplier: '1.0'
+    damage-weight: 100
+    speed-multiplier: '1.5'
+    speed-weight: 100
+    attributes: {}
+    abilities:
+      invisibility:
+        health-threshold: 1.0
+        duration: 10
+        cooldown: 5
+    possible-equipment:
+      possible-weapons:
+        - item: DIAMOND_SWORD-1
+      possible-offhands:
+        - item: SOUL_LANTERN-1
+      possible-helmets:
+        - item: CALCITE-1
+      possible-chestplates: []
+      possible-leggings: []
+      possible-boots: []
+    glowing: false
+    glow-time: '100'
+    drop-count: 4-8
+    drop-weight: 100
+    exp-chance: 1.0
+    exp-amount: 10-15
+    exp-weight: 100
+    drops:
+      - item: SOUL_CAMPFIRE-1
+        chance: 0.75
+        amount: 1
+        amount-weight: 100
+      - item: SNOW_BLOCK-1
+        chance: 0.5
+        amount: 4-16
+        amount-weight: 75
+      - item: SPECTRAL_ARROW-1
+        chance: 0.5
+        amount: 16-32
+        amount-weight: 100
+      - item: WITHER_SKELETON_SKULL-1
+        chance: 0.01
+        amount: 1
+        amount-weight: 100
+      - item: LODESTONE-1
+        chance: 0.25
+        amount: 1
+        amount-weight: 100
+      - item: LIGHT_BLUE_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: LIGHT_GRAY_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: LIME_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: MAGENTA_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: BLACK_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: BLUE_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: BROWN_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: CYAN_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: GRAY_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: GREEN_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: ORANGE_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: PINK_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: PURPLE_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: RED_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: WHITE_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+      - item: YELLOW_CANDLE-1
+        chance: 1.0
+        amount: 4-8
+        amount-weight: 100
+    spawn-conditions:
+      spawn-chance: 0.01
+      spawn-delay: 500-1200
+      spawn-delay-weight: 100
+      replace-type-only: true
+      despawn-time: '1800'
+      dimensions:
+        - OVERWORLD
+        - CUSTOM
+      min-x: infinite
+      max-x: infinite
+      min-z: infinite
+      max-z: infinite
+      min-y: 45
+      max-y: 128
+      biome-groups:
+        Mountain:
+          - WINDSWEPT_HILLS
+          - WINDSWEPT_FOREST
+          - WINDSWEPT_GRAVELLY_HILLS
+          - STONY_PEAKS
+          - JAGGED_PEAKS
+          - FROZEN_PEAKS
+          - SNOWY_SLOPES
+        Cold:
+          - SNOWY_PLAINS
+          - ICE_SPIKES
+          - SNOWY_TAIGA
+          - GROVE
+          - SNOWY_BEACH
+          - FROZEN_RIVER
+        Jungle:
+          - JUNGLE
+          - SPARSE_JUNGLE
+          - BAMBOO_JUNGLE
+        Nether:
+          - NETHER_WASTES
+          - SOUL_SAND_VALLEY
+          - CRIMSON_FOREST
+          - WARPED_FOREST
+          - BASALT_DELTAS
+        Misc:
+          - BEACH
+          - STONY_SHORE
+          - RIVER
+          - MUSHROOM_FIELDS
+          - THE_VOID
+        Forest:
+          - FOREST
+          - BIRCH_FOREST
+          - DARK_FOREST
+          - FLOWER_FOREST
+          - TAIGA
+          - OLD_GROWTH_BIRCH_FOREST
+          - OLD_GROWTH_PINE_TAIGA
+          - OLD_GROWTH_SPRUCE_TAIGA
+          - CHERRY_GROVE
+          - PALE_GARDEN
+        Ocean:
+          - OCEAN
+          - DEEP_OCEAN
+          - WARM_OCEAN
+          - LUKEWARM_OCEAN
+          - COLD_OCEAN
+          - DEEP_COLD_OCEAN
+          - DEEP_LUKEWARM_OCEAN
+          - FROZEN_OCEAN
+          - DEEP_FROZEN_OCEAN
+        Swamp:
+          - SWAMP
+          - MANGROVE_SWAMP
+        Plains:
+          - PLAINS
+          - SUNFLOWER_PLAINS
+          - MEADOW
+          - SAVANNA
+          - SAVANNA_PLATEAU
+          - WINDSWEPT_SAVANNA
+        End:
+          - THE_END
+          - END_BARRENS
+          - END_HIGHLANDS
+          - END_MIDLANDS
+          - SMALL_END_ISLANDS
+        Desert:
+          - DESERT
+          - BADLANDS
+          - ERODED_BADLANDS
+          - WOODED_BADLANDS
+        Underground:
+          - DEEP_DARK
+          - DRIPSTONE_CAVES
+          - LUSH_CAVES
+      time:
+        - NIGHT

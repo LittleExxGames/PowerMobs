@@ -1313,7 +1313,7 @@ equipment:
           potion-duration: 120
           potion-level: 2
 
-    golden_apple:
+    tasty_apple:
       material: GOLDEN_APPLE
       name: "&6Tasty Apple"
       lore:

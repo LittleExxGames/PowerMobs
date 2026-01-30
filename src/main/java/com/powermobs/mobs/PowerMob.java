@@ -13,7 +13,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -32,6 +34,7 @@ public class PowerMob {
     private final UUID powerMobUuid;
     private final boolean isRandom;
     private final List<Ability> abilities = new ArrayList<>();
+    private final Map<String, Map<String, Object>> abilitySettings;
 
     /**
      * Creates a new power mob
@@ -41,11 +44,24 @@ public class PowerMob {
      * @param id     The power mob ID (config key or "random" for random mobs)
      */
     public PowerMob(PowerMobsPlugin plugin, LivingEntity entity, String id) {
+        this(plugin, entity, id, Collections.emptyMap());
+    }
+
+    /**
+     * Creates a new power mob with per-mob ability settings
+     *
+     * @param plugin          The plugin instance
+     * @param entity          The entity to enhance
+     * @param id              The power mob ID (config key or "random" for random mobs)
+     * @param abilitySettings Per-mob ability settings (abilityId -> settings map)
+     */
+    public PowerMob(PowerMobsPlugin plugin, LivingEntity entity, String id, Map<String, Map<String, Object>> abilitySettings) {
         this.plugin = plugin;
         this.entity = entity;
         this.id = id;
         this.powerMobUuid = UUID.randomUUID();
         this.isRandom = "random".equals(id);
+        this.abilitySettings = deepUnmodifiableCopy(abilitySettings);
 
         // Tag the entity with metadata
         this.entity.setMetadata(POWER_MOB_KEY, new FixedMetadataValue(plugin, id));
@@ -53,6 +69,100 @@ public class PowerMob {
         // Store the UUID in the persistent data container
         PersistentDataContainer pdc = this.entity.getPersistentDataContainer();
         pdc.set(plugin.getPowerMobManager().getPowerMobKey(), PersistentDataType.STRING, this.powerMobUuid.toString());
+    }
+
+    /**
+     * Gets per-mob settings for a specific ability.
+     *
+     * @param abilityId The ability ID
+     * @return Unmodifiable settings map (empty if none)
+     */
+    public Map<String, Object> getAbilitySettings(String abilityId) {
+        Map<String, Object> settings = this.abilitySettings.get(abilityId);
+        return settings != null ? settings : Collections.emptyMap();
+    }
+
+    public String getAbilityString(String abilityId, String key, String defaultValue) {
+        Object value = getAbilitySettings(abilityId).get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof String s) {
+            return s;
+        }
+        return String.valueOf(value);
+    }
+
+    public int getAbilityInt(String abilityId, String key, int defaultValue) {
+        Number number = asNumber(getAbilitySettings(abilityId).get(key));
+        return number != null ? number.intValue() : defaultValue;
+    }
+
+    public long getAbilityLong(String abilityId, String key, long defaultValue) {
+        Number number = asNumber(getAbilitySettings(abilityId).get(key));
+        return number != null ? number.longValue() : defaultValue;
+    }
+
+    public double getAbilityDouble(String abilityId, String key, double defaultValue) {
+        Number number = asNumber(getAbilitySettings(abilityId).get(key));
+        return number != null ? number.doubleValue() : defaultValue;
+    }
+
+    public boolean getAbilityBoolean(String abilityId, String key, boolean defaultValue) {
+        Object value = getAbilitySettings(abilityId).get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean b) {
+            return b;
+        }
+        if (value instanceof String s) {
+            if (s.equalsIgnoreCase("true")) {
+                return true;
+            }
+            if (s.equalsIgnoreCase("false")) {
+                return false;
+            }
+        }
+        return defaultValue;
+    }
+
+    private static Number asNumber(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number n) {
+            return n;
+        }
+        if (value instanceof String s) {
+            try {
+                if (s.contains(".")) {
+                    return Double.parseDouble(s);
+                }
+                return Long.parseLong(s);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, Map<String, Object>> deepUnmodifiableCopy(Map<String, Map<String, Object>> input) {
+        if (input == null || input.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Map<String, Object>> outer = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, Object>> entry : input.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+            Map<String, Object> inner = entry.getValue() != null
+                    ? Collections.unmodifiableMap(new java.util.LinkedHashMap<>(entry.getValue()))
+                    : Collections.emptyMap();
+            outer.put(entry.getKey(), inner);
+        }
+        return Collections.unmodifiableMap(outer);
     }
 
     /**

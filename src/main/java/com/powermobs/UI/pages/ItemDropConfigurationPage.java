@@ -28,7 +28,6 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
     private static final int INVENTORY_SIZE = 54; // 6 rows of inventory
     private String selectedMobId;
     private String selectedItemId; //Should match with the tempItem item value
-    // removed: private boolean isNewDrop;
     private CustomDropConfig currentItem;
     private CustomDropConfig tempItem;
 
@@ -199,15 +198,13 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
 
         // Back button
         List<String> backDisplay = new ArrayList<>();
+        boolean warn = false;
         if (currentItem == null) {
-            backDisplay.add(ChatColor.RED + "UNSAVED CHANGES WILL BE LOST");
+            warn = true;
         } else if (!tempItem.toConfigMap().equals(currentItem.toConfigMap())) {
-            backDisplay.add(ChatColor.RED + "UNSAVED CHANGES WILL BE LOST");
+            warn = true;
         }
-        ItemStack backButton = createGuiItem(Material.BARRIER,
-                ChatColor.RED + "Back",
-                backDisplay);
-        inventory.setItem(53, backButton);
+        addBackButton(53, "Back", warn);
     }
 
     private ItemStack getDisplayItem() {

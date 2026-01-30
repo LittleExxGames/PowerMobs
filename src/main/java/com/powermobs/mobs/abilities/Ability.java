@@ -3,7 +3,7 @@ package com.powermobs.mobs.abilities;
 import com.powermobs.mobs.PowerMob;
 import org.bukkit.Material;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * Interface for power mob abilities
@@ -53,9 +53,39 @@ public interface Ability {
     Material getMaterial();
 
     /**
-     * Retries the abilities customizable info
+     * Returns the list of abilities with the configuration attached
      *
      * @return Customizable status rows
      */
     List<String> getStatus();
+
+    /**
+     * Schema for GUI + validation (key/type/default/description).
+     * If empty, GUI can fall back to inferring from abilitiesconfig.yml.
+     */
+    Map<String, AbilityConfigField> getConfigSchema();
+
+    /**
+     * Returns per-mob status/config info for display.
+     * Defaults to rendering the mob's resolved settings for this ability.
+     *
+     * @param powerMob The power mob
+     * @return Status rows
+     */
+    default List<String> getStatus(PowerMob powerMob) {
+        if (powerMob == null) {
+            return getStatus();
+        }
+
+        Map<String, Object> settings = powerMob.getAbilitySettings(getId());
+        if (settings == null || settings.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> lines = new ArrayList<>();
+        settings.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> lines.add(entry.getKey() + ": " + Objects.toString(entry.getValue())));
+        return lines;
+    }
 }

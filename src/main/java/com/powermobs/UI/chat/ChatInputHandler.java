@@ -118,42 +118,30 @@ public class ChatInputHandler implements Listener {
 
     private ChatInputResult validateInput(ChatInputType inputType, String input) {
         try {
-            switch (inputType) {
-                case SET_ID:
-                    return validateID(input);
-                case STRING_NAMES:
-                    return validateStringNames(input);
-                case DROPS_CONFIG:
-                    return validateDropsConfig(input);
-                case CHANCE:
-                    return validateChance(input);
-                case DROP_AMOUNT:
-                    return validateRange(input, "Amount", 50000);
-                case SPAWN_DELAY:
-                    return validateRange(input, "Delay", 500000);
-                case GLOW_TIME:
-                    return validateRange(input, "Time", 500000);
-                case DESPAWN_TIME:
-                    return validateRange(input, "Time", 500000);
-                case HEALTH:
-                    return validateRange(input, "Health", 999999999);
-                case MULTIPLIER:
-                    return validateDoubleRange(input, "Multiplier", 0.0001, 10.0);
-                case WEIGHT:
-                    return validateWeight(input);
-                case ENCHANTMENTS:
-                    return validateEnchantment(input);
-                case DIMENSIONS:
-                    return validateBooleans(input, 3);
-                case TIMES:
-                    return validateBooleans(input, 2);
-                case COORDINATES:
-                    return validateDistance(input);
-                case BIOME_CONFIG:
-                    return validateBiome(input);
-                default:
-                    return new ChatInputResult(false, null, "Unknown input type");
-            }
+            return switch (inputType) {
+                case SET_ID -> validateID(input);
+                case STRING_NAMES -> validateStringNames(input);
+                case DROPS_CONFIG -> validateDropsConfig(input);
+                case CHANCE -> validateChance(input);
+                case DROP_AMOUNT -> validateIntRange(input, "Amount", 50000);
+                case SPAWN_DELAY -> validateIntRange(input, "Delay", 500000);
+                case GLOW_TIME -> validateIntRange(input, "Time", 500000);
+                case DESPAWN_TIME -> validateIntRange(input, "Time", 500000);
+                case HEALTH -> validateIntRange(input, "Health", 999999999);
+                case MULTIPLIER -> validateDoubleRange(input, "Multiplier", 0.0001, 10.0);
+                case WEIGHT -> validateWeight(input);
+                case RANGE -> validateIntRange(input, "Range", 1000);
+                case ENCHANTMENTS -> validateEnchantment(input);
+                case DIMENSIONS -> validateBooleans(input, 3);
+                case TIMES -> validateBooleans(input, 2);
+                case COORDINATES -> validateDistance(input);
+                case BIOME_CONFIG -> validateBiome(input);
+                case ABILITY_STRING -> validateStringNames(input);
+                case ABILITY_INT -> validateInt(input, "Config", 1, 1000);
+                case ABILITY_DOUBLE -> validateDouble(input, "Value", 0.0, 1000.0);
+                case ABILITY_BOOLEAN -> validateBooleans(input, 1);
+                default -> new ChatInputResult(false, null, "Unknown input type");
+            };
         } catch (Exception e) {
             return new ChatInputResult(false, null, "Invalid format: " + e.getMessage());
         }
@@ -219,7 +207,7 @@ public class ChatInputHandler implements Listener {
             String countInput = matcher.group(1); // Extract level (single or range)
             String weightInput = matcher.group(2); // Extract optional weight
 
-            ChatInputResult countResult = validateRange(countInput, "Count", 64);
+            ChatInputResult countResult = validateIntRange(countInput, "Count", 64);
             if (!countResult.valid()) {
                 return countResult;
             }
@@ -289,7 +277,27 @@ public class ChatInputHandler implements Listener {
         }
     }
 
-    private ChatInputResult validateRange(String input, String type, int maxLimit) {
+    private ChatInputResult validateDouble(String input, String type, double minLimit, double maxLimit) {
+        String pattern = "^set\\s+(-?\\d+(?:\\.\\d+)?)$";
+        Pattern regex = Pattern.compile(pattern);
+        Matcher matcher = regex.matcher(input.trim());
+
+        if (!matcher.matches()) {
+            return new ChatInputResult(false, null, "Incorrect format: Please use 'set <decimal>'");
+        }
+
+        double amount = Double.parseDouble(matcher.group(1));
+        if (amount < minLimit) {
+            return new ChatInputResult(false, null, type + " must be at least " + minLimit);
+        }
+        if (amount > maxLimit) {
+            return new ChatInputResult(false, null, type + " cannot exceed " + maxLimit);
+        }
+        return new ChatInputResult(true, amount, null);
+    }
+
+
+    private ChatInputResult validateIntRange(String input, String type, int maxLimit) {
         String pattern = "^set\\s+(\\d+)(?:-(\\d+))?$";
         Pattern regex = Pattern.compile(pattern);
         Matcher matcher = regex.matcher(input);
@@ -323,6 +331,26 @@ public class ChatInputHandler implements Listener {
         } else {
             return new ChatInputResult(false, null, "Incorrect format: Please use 'set <integer>' or 'set <integer>-<integer>'");
         }
+    }
+
+    private ChatInputResult validateInt(String input, String type, int minLimit, int maxLimit) {
+        // Accepts: "set 1" (whole numbers only)
+        String pattern = "^set\\s+(-?\\d+)$";
+        Pattern regex = Pattern.compile(pattern);
+        Matcher matcher = regex.matcher(input.trim());
+
+        if (!matcher.matches()) {
+            return new ChatInputResult(false, null, "Incorrect format: Please use 'set <integer>'");
+        }
+
+        int val = Integer.parseInt(matcher.group(1));
+        if (val < minLimit) {
+            return new ChatInputResult(false, null, type + " value must be at least " + minLimit);
+        }
+        if (val > maxLimit) {
+            return new ChatInputResult(false, null, type + " value cannot exceed " + maxLimit);
+        }
+        return new ChatInputResult(true, val, null);
     }
 
     private ChatInputResult validateWeight(String input) {

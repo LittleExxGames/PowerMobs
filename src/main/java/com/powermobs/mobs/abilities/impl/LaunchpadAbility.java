@@ -2,10 +2,10 @@ package com.powermobs.mobs.abilities.impl;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.abilities.AbstractAbility;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -21,27 +21,15 @@ import java.util.UUID;
 
 public class LaunchpadAbility extends AbstractAbility implements Listener {
     private final String title = "Launchpad";
-    private final String description = "The an attack has a chance to launch the target into the air.";
+    private final String description = "Attacking has a chance to launch the target into the air.";
     private final Material material = Material.PISTON;
-    private final double chance;
-    private final int cooldown;
-    private final int power;
+    private final double defaultChance = 0.15;
+    private final int defaultPower = 2;
+    private final int defaultCooldown = 4;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
 
     public LaunchpadAbility(PowerMobsPlugin plugin) {
         super(plugin, "launchpad");
-
-        ConfigurationSection config = plugin.getConfigManager().getAbilitiesConfigManager().getConfig().getConfigurationSection("abilities.launchpad");
-
-        if (config != null) {
-            this.chance = config.getDouble("chance", 0.08);
-            this.cooldown = config.getInt("cooldown", 4);
-            this.power = config.getInt("power", 2);
-        } else {
-            this.chance = 0.2;
-            this.cooldown = 4;
-            this.power = 2;
-        }
     }
 
     @Override
@@ -76,6 +64,15 @@ public class LaunchpadAbility extends AbstractAbility implements Listener {
         return List.of();
     }
 
+    @Override
+    public Map<String, AbilityConfigField> getConfigSchema() {
+        return Map.of(
+                "chance", AbilityConfigField.chance("chance", this.defaultChance, "Chance to launch"),
+                "power", AbilityConfigField.integer("power", this.defaultPower, "Launch power"),
+                "cooldown", AbilityConfigField.integer("cooldown", this.defaultCooldown, "Cooldown in seconds")
+        );
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         // Check if the damager is a LivingEntity (potential power mob)
@@ -101,16 +98,20 @@ public class LaunchpadAbility extends AbstractAbility implements Listener {
             return;
         }
 
+        final double chance = powerMob.getAbilityDouble(this.id, "chance", this.defaultChance);
+        final int power = powerMob.getAbilityInt(this.id, "power", this.defaultPower);
+        final int cooldownSeconds = powerMob.getAbilityInt(this.id, "cooldown", this.defaultCooldown);
+
         // Check cooldown
         UUID mobUuid = powerMob.getEntityUuid();
         if (this.cooldowns.containsKey(mobUuid)) {
             long lastUse = this.cooldowns.get(mobUuid);
-            if (System.currentTimeMillis() - lastUse < this.cooldown * 1000L) {
+            if (System.currentTimeMillis() - lastUse < cooldownSeconds * 1000L) {
                 return;
             }
         }
 
-        if (Math.random() > this.chance) {
+        if (Math.random() > chance) {
             return;
         }
 
@@ -121,7 +122,7 @@ public class LaunchpadAbility extends AbstractAbility implements Listener {
         }
 
         // Launch the entity into the air
-        target.setVelocity(new Vector(0, this.power, 0));
+        target.setVelocity(new Vector(0, power, 0));
         this.cooldowns.put(mobUuid, System.currentTimeMillis());
 
     }

@@ -5,6 +5,7 @@ import com.powermobs.UI.chat.ChatInputHandler;
 import com.powermobs.UI.framework.GUIPageManager;
 import com.powermobs.UI.framework.PlayerSessionData;
 import com.powermobs.UI.pages.*;
+import com.powermobs.UI.pages.abilities.AbilityConfigGUIPage;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Material;
@@ -53,14 +54,7 @@ public class GUIManager {
         pageManager.registerPage("mob_equipment_item_settings", new MobEquipmentItemSettingsPage(pageManager, this));
         pageManager.registerPage("mob_spawn_conditions", new MobSpawnConditionsPage(pageManager, this));
 
-        // Subpages for mob editor
-        // These would be implemented similarly to the pages above
-        //pageManager.registerPage("mob_abilities", new MobAbilitiesPage(pageManager));
-        //pageManager.registerPage("mob_drops", new MobDropsPage(pageManager));
-        //pageManager.registerPage("mob_spawn_conditions", new MobSpawnConditionsPage(pageManager));
-
-        // Sub-pages for ability, equipment, and drop editors
-        // These would be implemented as needed
+        pageManager.registerPage("ability_config", new AbilityConfigGUIPage(pageManager, this));
     }
 
     /**

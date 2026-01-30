@@ -2,12 +2,12 @@ package com.powermobs.mobs.abilities.impl;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.abilities.AbstractAbility;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -21,9 +21,9 @@ public class RegenerationAbility extends AbstractAbility {
     private final String title = "Regeneration";
     private final String description = "Occasionally heals the mob by a certain amount over time.";
     private final Material material = Material.GOLDEN_APPLE;
-    private final double amount;
-    private final int tickRate;
-    private final boolean particles;
+    private final double defaultAmount = 0.5;
+    private final int defaultTickRate = 20;
+    private final boolean defaultParticles = true;
     private final Map<UUID, BukkitTask> tasks = new HashMap<>();
 
     /**
@@ -33,23 +33,15 @@ public class RegenerationAbility extends AbstractAbility {
      */
     public RegenerationAbility(PowerMobsPlugin plugin) {
         super(plugin, "regeneration");
-
-        ConfigurationSection config = plugin.getConfigManager().getAbilitiesConfigManager().getConfig().getConfigurationSection("abilities.regeneration");
-
-        if (config != null) {
-            this.amount = config.getDouble("amount", 0.5);
-            this.tickRate = config.getInt("tick-rate", 20);
-            this.particles = config.getBoolean("particles", true);
-        } else {
-            this.amount = 0.5;
-            this.tickRate = 20;
-            this.particles = true;
-        }
     }
 
     @Override
     public void apply(PowerMob powerMob) {
         UUID entityUuid = powerMob.getEntityUuid();
+
+        final double amount = powerMob.getAbilityDouble(this.id, "amount", this.defaultAmount);
+        final int tickRate = powerMob.getAbilityInt(this.id, "tick-rate", this.defaultTickRate);
+        final boolean particles = powerMob.getAbilityBoolean(this.id, "particles", this.defaultParticles);
 
         // Cancel existing task if it exists
         if (this.tasks.containsKey(entityUuid)) {
@@ -71,11 +63,11 @@ public class RegenerationAbility extends AbstractAbility {
             // Only regenerate if not at full health
             if (entity.getHealth() < maxHealth) {
                 // Calculate new health
-                double newHealth = Math.min(entity.getHealth() + this.amount, maxHealth);
+                double newHealth = Math.min(entity.getHealth() + amount, maxHealth);
                 entity.setHealth(newHealth);
 
                 // Show particles
-                if (this.particles && entity.getLocation().getWorld() != null) {
+                if (particles && entity.getLocation().getWorld() != null) {
                     entity.getLocation().getWorld().spawnParticle(
                             Particle.HEART,
                             entity.getLocation().add(0, 1, 0),
@@ -88,7 +80,7 @@ public class RegenerationAbility extends AbstractAbility {
                 }
             }
 
-        }, this.tickRate, this.tickRate);
+    }, tickRate, tickRate);
 
         this.tasks.put(entityUuid, task);
     }
@@ -121,5 +113,13 @@ public class RegenerationAbility extends AbstractAbility {
     @Override
     public List<String> getStatus() {
         return List.of();
+    }
+
+    @Override
+    public Map<String, AbilityConfigField> getConfigSchema() {
+        return Map.of(
+                "amount", AbilityConfigField.dbl("amount", this.defaultAmount, "Health to regen per trigger"),
+                "tick-rate", AbilityConfigField.integer("tick-rate", this.defaultTickRate, "Tick rate in ticks"),
+                "particles", AbilityConfigField.bool("particles", this.defaultParticles, "Show particles"));
     }
 }

@@ -2,10 +2,10 @@ package com.powermobs.mobs.abilities.impl;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.abilities.AbstractAbility;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,12 +23,13 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
     private final String title = "Summon Minions";
     private final String description = "A chance the mob will summon minions when it is attacked.";
     private final Material material = Material.ZOMBIE_SPAWN_EGG;
-    private final EntityType mobType;
-    private final int count;
-    private final int cooldown;
-    private final double health;
+    private final String defaultMobType = "ZOMBIE";
+    private final int defaultCount = 2;
+    private final int defaultCooldown = 30;
+    private final double defaultHealth = 10;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
     private final NamespacedKey minionOwnerKey; // add
+    private final Set<String> warnedInvalidMobTypes = new HashSet<>();
 
     /**
      * Creates a new summon minions ability
@@ -37,33 +38,6 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
      */
     public SummonMinionsAbility(PowerMobsPlugin plugin) {
         super(plugin, "summon-minions");
-
-        ConfigurationSection config = plugin.getConfigManager().getAbilitiesConfigManager().getConfig().getConfigurationSection("abilities.summon-minions");
-
-        if (config != null) {
-            String typeString = config.getString("mob-type", "ZOMBIE");
-            EntityType type;
-            try {
-                type = EntityType.valueOf(typeString.toUpperCase());
-                if (!type.isAlive() || !type.isSpawnable()) {
-                    plugin.getLogger().warning("Invalid mob type for summon-minions ability: " + typeString);
-                    type = EntityType.ZOMBIE;
-                }
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid mob type for summon-minions ability: " + typeString);
-                type = EntityType.ZOMBIE;
-            }
-
-            this.mobType = type;
-            this.count = config.getInt("count", 2);
-            this.cooldown = config.getInt("cooldown", 30);
-            this.health = config.getDouble("health", 10);
-        } else {
-            this.mobType = EntityType.ZOMBIE;
-            this.count = 2;
-            this.cooldown = 30;
-            this.health = 10;
-        }
 
         // Register events
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -101,10 +75,16 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
             return;
         }
 
+        final String typeString = powerMob.getAbilityString(this.id, "mob-type", this.defaultMobType);
+        final EntityType mobType = parseMobType(typeString);
+        final int count = powerMob.getAbilityInt(this.id, "count", this.defaultCount);
+        final int cooldownSeconds = powerMob.getAbilityInt(this.id, "cooldown", this.defaultCooldown);
+        final double health = powerMob.getAbilityDouble(this.id, "health", this.defaultHealth);
+
         // Check cooldown
         if (this.cooldowns.containsKey(powerMob.getEntityUuid())) {
             long lastUse = this.cooldowns.get(powerMob.getEntityUuid());
-            if (System.currentTimeMillis() - lastUse < this.cooldown * 1000L) {
+            if (System.currentTimeMillis() - lastUse < cooldownSeconds * 1000L) {
                 return;
             }
         }
@@ -147,9 +127,9 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
         // Summon minions
         Location location = entity.getLocation();
 
-        for (int i = 0; i < this.count; i++) {
+        for (int i = 0; i < count; i++) {
             // Calculate spawn position (in a circle around the mob)
-            double angle = 2 * Math.PI * i / this.count;
+            double angle = 2 * Math.PI * i / count;
             double x = location.getX() + 2 * Math.cos(angle);
             double z = location.getZ() + 2 * Math.sin(angle);
 
@@ -157,15 +137,15 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
 
             // Spawn the minion
             if (location.getWorld() != null) {
-                LivingEntity minion = (LivingEntity) location.getWorld().spawnEntity(spawnLoc, this.mobType);
+                LivingEntity minion = (LivingEntity) location.getWorld().spawnEntity(spawnLoc, mobType);
 
                 // Set health
                 if (minion.getAttribute(Attribute.MAX_HEALTH) != null) {
                     Objects.requireNonNull(
                             minion.getAttribute(Attribute.MAX_HEALTH)
-                    ).setBaseValue(this.health);
+                        ).setBaseValue(health);
 
-                    minion.setHealth(this.health);
+                        minion.setHealth(health);
                 }
 
                 // add: mark/register as plugin power mob
@@ -190,6 +170,37 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
 
         // Set cooldown
         this.cooldowns.put(powerMob.getEntityUuid(), System.currentTimeMillis());
+    }
+
+    private EntityType parseMobType(String typeString) {
+        if (typeString == null || typeString.isBlank()) {
+            return EntityType.ZOMBIE;
+        }
+
+        String normalized = typeString.trim().toUpperCase(Locale.ROOT);
+        EntityType type;
+        try {
+            type = EntityType.valueOf(normalized);
+        } catch (IllegalArgumentException e) {
+            warnInvalidMobType(typeString);
+            return EntityType.ZOMBIE;
+        }
+
+        if (!type.isAlive() || !type.isSpawnable()) {
+            warnInvalidMobType(typeString);
+            return EntityType.ZOMBIE;
+        }
+
+        return type;
+    }
+
+    private void warnInvalidMobType(String typeString) {
+        if (typeString == null) {
+            return;
+        }
+        if (this.warnedInvalidMobTypes.add(typeString)) {
+            this.plugin.getLogger().warning("Invalid mob type for summon-minions ability: " + typeString);
+        }
     }
 
     /**
@@ -238,5 +249,15 @@ public class SummonMinionsAbility extends AbstractAbility implements Listener {
     @Override
     public List<String> getStatus() {
         return List.of();
+    }
+
+    @Override
+    public Map<String, AbilityConfigField> getConfigSchema() {
+        return Map.of(
+                "mob-type", AbilityConfigField.entityType("mob-type", this.defaultMobType, "Mob type to summon"),
+                "count", AbilityConfigField.integer("count", this.defaultCount, "Number of minions to summon"),
+                "cooldown", AbilityConfigField.integer("cooldown", this.defaultCooldown, "Cooldown in seconds"),
+                "health", AbilityConfigField.dbl("health", this.defaultHealth, "Health of the minions")
+        );
     }
 }

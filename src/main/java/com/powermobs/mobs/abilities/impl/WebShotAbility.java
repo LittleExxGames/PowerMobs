@@ -2,13 +2,13 @@ package com.powermobs.mobs.abilities.impl;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.abilities.AbilityConfigField;
 import com.powermobs.mobs.abilities.AbstractAbility;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -26,10 +26,10 @@ public class WebShotAbility extends AbstractAbility {
     private final String title = "Web Shot";
     private final String description = "Shoots a cobweb to trap the player.";
     private final Material material = Material.COBWEB;
-    private final int range;
-    private final int slownessLevel;
-    private final int duration;
-    private final int cooldown;
+    private final int defaultRange = 15;
+    private final int defaultSlownessLevel = 1;
+    private final int defaultDuration = 5;
+    private final int defaultCooldown = 10;
     private final Map<UUID, BukkitTask> tasks = new HashMap<>();
     private final Map<UUID, Long> cooldowns = new HashMap<>();
     private final Map<Location, Long> webLocations = new HashMap<>();
@@ -41,20 +41,6 @@ public class WebShotAbility extends AbstractAbility {
      */
     public WebShotAbility(PowerMobsPlugin plugin) {
         super(plugin, "web-shot");
-
-        ConfigurationSection config = plugin.getConfigManager().getAbilitiesConfigManager().getConfig().getConfigurationSection("abilities.web-shot");
-
-        if (config != null) {
-            this.range = config.getInt("range", 15);
-            this.slownessLevel = config.getInt("slowness-level", 1);
-            this.duration = config.getInt("duration", 5);
-            this.cooldown = config.getInt("cooldown", 10);
-        } else {
-            this.range = 15;
-            this.slownessLevel = 1;
-            this.duration = 5;
-            this.cooldown = 10;
-        }
 
         // Schedule a task to clean up web blocks
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -76,6 +62,11 @@ public class WebShotAbility extends AbstractAbility {
     public void apply(PowerMob powerMob) {
         UUID entityUuid = powerMob.getEntityUuid();
 
+        final int range = powerMob.getAbilityInt(this.id, "range", this.defaultRange);
+        final int slownessLevel = powerMob.getAbilityInt(this.id, "slowness-level", this.defaultSlownessLevel);
+        final int durationSeconds = powerMob.getAbilityInt(this.id, "duration", this.defaultDuration);
+        final int cooldownSeconds = powerMob.getAbilityInt(this.id, "cooldown", this.defaultCooldown);
+
         // Cancel existing task if it exists
         if (this.tasks.containsKey(entityUuid)) {
             this.tasks.get(entityUuid).cancel();
@@ -91,7 +82,7 @@ public class WebShotAbility extends AbstractAbility {
             // Check cooldown
             if (this.cooldowns.containsKey(entityUuid)) {
                 long lastUse = this.cooldowns.get(entityUuid);
-                if (System.currentTimeMillis() - lastUse < this.cooldown * 1000L) {
+                if (System.currentTimeMillis() - lastUse < cooldownSeconds * 1000L) {
                     return;
                 }
             }
@@ -106,7 +97,7 @@ public class WebShotAbility extends AbstractAbility {
                     continue;
                 }
                 if (player.getWorld().equals(entity.getWorld()) &&
-                        player.getLocation().distance(entity.getLocation()) <= this.range) {
+                        player.getLocation().distance(entity.getLocation()) <= range) {
                     nearbyPlayers.add(player);
                 }
             }
@@ -130,7 +121,7 @@ public class WebShotAbility extends AbstractAbility {
             Location startLoc = entity.getLocation().add(0, 1, 0);
             Location current = startLoc.clone();
 
-            for (int i = 0; i < this.range; i++) {
+            for (int i = 0; i < range; i++) {
                 current = current.add(direction);
 
                 // Show particle trail
@@ -150,8 +141,8 @@ public class WebShotAbility extends AbstractAbility {
                         // Hit a player
                         player.addPotionEffect(new PotionEffect(
                                 PotionEffectType.SLOWNESS,
-                                this.duration * 20,
-                                this.slownessLevel,
+                            durationSeconds * 20,
+                            slownessLevel,
                                 false,
                                 true,
                                 true
@@ -209,5 +200,15 @@ public class WebShotAbility extends AbstractAbility {
     @Override
     public List<String> getStatus() {
         return List.of();
+    }
+
+    @Override
+    public Map<String, AbilityConfigField> getConfigSchema() {
+        return Map.of(
+                "range", AbilityConfigField.integer("range", this.defaultRange, "Range that the effect can apply"),
+                "slowness-level", AbilityConfigField.integer("slowness-level", this.defaultSlownessLevel, "Slowness level applied to the player"),
+                "duration", AbilityConfigField.integer("duration", this.defaultDuration, "Duration the webs last"),
+                "cooldown", AbilityConfigField.integer("cooldown", this.defaultCooldown, "Cooldown until the ability can be used again")
+        );
     }
 }

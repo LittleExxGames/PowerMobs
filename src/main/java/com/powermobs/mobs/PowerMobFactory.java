@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
@@ -65,8 +66,9 @@ public class PowerMobFactory {
         }
         entity = replaceEntity(entity, config.getEntityType());
 
-        // Create the power mob
-        PowerMob powerMob = new PowerMob(this.plugin, entity, configId);
+        // Create the power mob with resolved ability settings
+        Map<String, Map<String, Object>> resolvedAbilitySettings = resolveAbilitySettings(config.getPossibleAbilities());
+        PowerMob powerMob = new PowerMob(this.plugin, entity, configId, resolvedAbilitySettings);
 
         // Apply properties
         powerMob.applyProperties(
@@ -78,7 +80,7 @@ public class PowerMobFactory {
         );
 
         // Apply abilities
-        for (String abilityId : config.getPossibleAbilities()) {
+        for (String abilityId : config.getPossibleAbilities().keySet()) {
             Ability ability = this.plugin.getAbilityManager().getAbility(abilityId);
             if (ability != null) {
                 powerMob.addAbility(ability);
@@ -149,8 +151,21 @@ public class PowerMobFactory {
             }
         }
         }
-        // Create the power mob
-        PowerMob powerMob = new PowerMob(this.plugin, entity, "random");
+        // Create the power mob with resolved ability settings (applies to chosen abilities)
+        Map<String, Map<String, Object>> possible = config.getPossibleAbilities();
+        List<String> pool = new ArrayList<>(possible.keySet());
+        Collections.shuffle(pool);
+
+        int abilityCount = Math.min(config.getActualAbilityCount(), pool.size());
+        List<String> chosenIds = pool.subList(0, abilityCount);
+
+        // Resolve settings ONLY for chosen abilities
+        Map<String, Map<String, Object>> chosenMap = new LinkedHashMap<>();
+        for (String id : chosenIds) {
+            chosenMap.put(id, possible.getOrDefault(id, Collections.emptyMap()));
+        }
+        Map<String, Map<String, Object>> resolvedAbilitySettings = resolveAbilitySettings(chosenMap);
+        PowerMob powerMob = new PowerMob(this.plugin, entity, "random", resolvedAbilitySettings);
 
         // Generate random name
         String name = generateRandomName(config, entity.getType());
@@ -170,12 +185,8 @@ public class PowerMobFactory {
         );
 
         // Apply random abilities
-        List<String> possibleAbilities = new ArrayList<>(config.getPossibleAbilities());
-        Collections.shuffle(possibleAbilities);
-
-        int abilityCount = config.getActualAbilityCount();
-        for (int i = 0; i < Math.min(abilityCount, possibleAbilities.size()); i++) {
-            Ability ability = this.plugin.getAbilityManager().getAbility(possibleAbilities.get(i));
+        for (String abilityId : chosenIds) {
+            Ability ability = this.plugin.getAbilityManager().getAbility(abilityId);
             if (ability != null) {
                 powerMob.addAbility(ability);
             }
@@ -195,6 +206,82 @@ public class PowerMobFactory {
         }
 
         return powerMob;
+    }
+
+    private Map<String, Map<String, Object>> resolveAbilitySettings(Map<String, Map<String, Object>> possibleAbilities) {
+        if (possibleAbilities == null || possibleAbilities.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Map<String, Object>> resolved = new LinkedHashMap<>();
+
+        ConfigurationSection root = this.plugin.getConfigManager()
+                .getAbilitiesConfigManager()
+                .getConfig()
+                .getConfigurationSection("abilities");
+
+        for (Map.Entry<String, Map<String, Object>> entry : possibleAbilities.entrySet()) {
+            String abilityId = entry.getKey();
+            if (abilityId == null || abilityId.isBlank()) continue;
+
+            Map<String, Object> merged = new LinkedHashMap<>();
+
+            // defaults from abilitiesconfig.yml
+            if (root != null) {
+                ConfigurationSection defaultsSection = root.getConfigurationSection(abilityId);
+                if (defaultsSection != null) {
+                    merged.putAll(deepConvertValues(defaultsSection.getValues(false)));
+                }
+            }
+
+            // overrides from possibleAbilities[abilityId]
+            Map<String, Object> overrides = entry.getValue();
+            if (overrides != null && !overrides.isEmpty()) {
+                merged.putAll(deepConvertValues(overrides));
+            }
+
+            resolved.put(abilityId, merged);
+        }
+
+        return resolved;
+    }
+
+    private static Map<String, Object> deepConvertValues(Map<String, ?> input) {
+        if (input == null || input.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<String, ?> entry : input.entrySet()) {
+            out.put(entry.getKey(), deepConvertValue(entry.getValue()));
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object deepConvertValue(Object value) {
+        if (value instanceof ConfigurationSection section) {
+            return deepConvertValues(section.getValues(false));
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                Object k = entry.getKey();
+                if (k == null) {
+                    continue;
+                }
+                out.put(String.valueOf(k), deepConvertValue(entry.getValue()));
+            }
+            return out;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> out = new ArrayList<>(list.size());
+            for (Object item : list) {
+                out.add(deepConvertValue(item));
+            }
+            return out;
+        }
+        return value;
     }
 
     private void applyGlowingEffect(LivingEntity entity, int durationSeconds) {

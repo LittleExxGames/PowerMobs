@@ -47,6 +47,7 @@ public class MobEquipmentPage extends AbstractGUIPage {
         PowerMobConfig mobConfig = plugin.getConfigManager().getPowerMob(selectedMobId);
 
         if (mobConfig == null) {
+            plugin.debug("Mob config not found for mob " + selectedMobId + ".", "ui");
             pageManager.navigateBack();
             return;
         }

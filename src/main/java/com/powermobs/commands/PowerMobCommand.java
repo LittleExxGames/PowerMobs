@@ -237,7 +237,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GOLD + "Speed Multiplier: " + ChatColor.WHITE + config.getMinSpeedMultiplier() + "-" + config.getMaxSpeedMultiplier());
         sender.sendMessage(ChatColor.GOLD + "Speed Weight: " + ChatColor.WHITE + config.getSpeedWeight());
         // List abilities
-        String abilities = config.getPossibleAbilities().stream().map(a -> ChatColor.WHITE + a).collect(Collectors.joining(", "));
+        String abilities = config.getPossibleAbilities().keySet().stream().map(a -> ChatColor.WHITE + a).collect(Collectors.joining(", "));
         sender.sendMessage(ChatColor.GOLD + "Abilities: " + ChatColor.WHITE + abilities);
         // List equipment
         for (String type : config.getPossibleEquipment().keySet()) {

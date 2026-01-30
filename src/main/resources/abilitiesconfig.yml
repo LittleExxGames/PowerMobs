@@ -1,7 +1,20 @@
 # ===============================
-# Ability Configuration
+# Ability Defaults (Global)
 # ===============================
-# Define all possible abilities that can be assigned to power mobs
+# This file defines the DEFAULT settings for each ability.
+#
+# IMPORTANT:
+# - This file does NOT enable abilities by itself.
+#   Abilities are enabled per-mob (mobsconfig.yml) or via random-mobs (config.yml).
+#
+# How settings are chosen (highest priority first):
+#  1) Mob-specific settings (mobsconfig.yml) for that mob + ability
+#  2) Default settings from this file (abilitiesconfig.yml)
+#  3) Plugin built-in defaults (hardcoded in the plugin) if a setting is missing in both files
+#
+# Using defaults on a mob:
+# - In mobsconfig.yml, you can set an ability to {} (empty settings).
+#   That means: "use the defaults" from this file (and built-in defaults if needed).
 abilities:
   # Fire Aura: Sets nearby entities on fire
   fire-aura:
@@ -20,6 +33,8 @@ abilities:
     chance: 0.25
     # Damage multiplier for the lightning
     damage-multiplier: 1.0
+    # Use real lighting instead of bolt particles (can destroy items upon player death)
+    real-lighting: false
 
   # Teleport: Randomly teleports when damaged
   teleport:
@@ -27,6 +42,8 @@ abilities:
     chance: 0.3
     # Maximum teleport distance
     max-away-distance: 10
+    # Maximum teleport distance to the player due to damage inactivity
+    max-to-distance: 100
     # Cooldown in seconds
     cooldown: 5
     # Time until the mob will instead teleport to the player after not being damaged
@@ -35,7 +52,7 @@ abilities:
   # Leap: Jumps at the target
   leap:
     # Leap height multiplier
-    height: 1.5
+    height: 0.55
     # Forward velocity multiplier
     forward: 1.2
     # Cooldown in seconds
@@ -80,3 +97,12 @@ abilities:
     tick-rate: 20
     # Whether to show particles
     particles: true
+
+  # Launchpad: Launches the player upwards when hit
+  launchpad:
+    # Chance to trigger on hit (0.0-1.0)
+    chance: 0.15
+    # Power of the launch
+    power: 2
+    # Cooldown in seconds
+    cooldown: 4

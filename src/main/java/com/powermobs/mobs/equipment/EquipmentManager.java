@@ -296,6 +296,7 @@ public class EquipmentManager {
                 if (item != null) {
                     // Add to uniques with a prefix to distinguish them
                     String itemId = "spawn-blocker-" + blockerId;
+                    item = setCustomItemId(itemId, item);
                     this.uniques.put(itemId, item);
                     this.plugin.debug("Loaded spawn blocker item: " + blockerId, "save_and_load");
                 }
