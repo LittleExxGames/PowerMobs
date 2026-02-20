@@ -64,11 +64,13 @@ public class CustomItemEffectManager {
             for (String effectId : effectsSection.getKeys(false)) {
                 ConfigurationSection effectSection = effectsSection.getConfigurationSection(effectId);
                 if (effectSection != null) {
-                    ItemEffect effect = new ItemEffect(effectSection);
+                    ItemEffect effect = new ItemEffect(itemId, effectSection);
                     if (effect.isValid()) {
                         effects.add(effect);
                     } else {
-                        plugin.getLogger().warning("Invalid effect configuration for " + itemId + "." + effectId);
+                        for (String problem : effect.validateProblems()) {
+                            plugin.getLogger().warning("[ItemEffects] " + itemId + ":" + effect.getEffectId() + " -> " + problem);
+                        }
                     }
                 }
             }

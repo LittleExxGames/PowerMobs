@@ -72,7 +72,7 @@
 #
 #     slots:                     # List[String] (OPTIONAL) - Where this attribute is active
 #                                # Examples (case-insensitive):
-#                                #   - "any"         # default if omitted; applies in any slot
+#                                #   - "any"        # default if omitted; applies in any slot
 #                                #   - "mainhand"   # only when in main hand
 #                                #   - "off_hand"   # only when in off hand
 #                                #   - "armor"      # all armor slots (helmet, chest, legs, boots)
@@ -119,11 +119,17 @@
 #                                # PARTICLES: Spawns particle effects
 #                                # SOUND: Plays sound effects
 #
-#     target:                    # String (REQUIRED) - Who receives the effect
+#     target:                    # Who receives the effect (ONLY for effects that apply to a person/mob)
+#                                # Required for: POTION, PURE_DAMAGE, IGNITE, KNOCKBACK, IMMUNITY, HEAL
+#                                # Not needed for: AOE_POTION, PARTICLES, SOUND
 #                                # Valid values: SELF, VICTIM, ATTACKER
-#                                # SELF: The entity holding/wearing the item
-#                                # VICTIM: The entity being attacked/affected
-#                                # ATTACKER: The entity performing the action
+#
+#     center:                    # Where the effect happens (ONLY for area/location effects)
+#                                # Used for: AOE_POTION, PARTICLES, SOUND
+#                                # Valid values: SELF, VICTIM, ATTACKER, LOCATION
+#                                # SELF/ATTACKER: at the person using/holding the item
+#                                # VICTIM: at the thing you hit / the thing involved in the trigger
+#                                # LOCATION: at the impact spot (best for PROJECTILE_HIT)
 #
 #     chance:                    # Number (OPTIONAL) - Probability effect will trigger
 #                                # Valid values: 0.0-1.0 (0% to 100%)
@@ -132,6 +138,44 @@
 #     cooldown:                  # Integer (OPTIONAL) - Seconds before effect can trigger again
 #                                # Valid values: 0-3600 (0 = no cooldown)
 #                                # Default: 0
+#     effect-stack:              # Map (OPTIONAL) - Additional effects to trigger on the same item
+#                                #
+#                                # What it does:
+#                                # - Lets one effect trigger other effect(s) on the SAME item, by effect ID.
+#                                #
+#                                # Important notes (common misunderstandings):
+#                                # - Stacked effects are still normal effects.
+#                                #   They can trigger TWO ways:
+#                                #     1) On their own, when their own "trigger:" happens
+#                                #     2) When called by an effect-stack
+#                                #
+#                                # - Stack chance:
+#                                #   Each stacked effect defaults to 100% chance when triggered by the stack.
+#                                #   You can override that per stacked effect:
+#                                #     effect-stack:
+#                                #       <other-effect-id>:
+#                                #         chance: 0.35
+#                                #
+#                                # - Context rule:
+#                                #   Stacked effects reuse the same situation as the parent (same attacker/victim/location).
+#                                #   If a stacked effect cannot run with that situation, it will be skipped and a warning is logged.
+#                                #
+#                                # Stack conditions (when):
+#                                # - "when" controls WHEN this stacked effect is allowed to roll its stack chance.
+#                                #
+#                                # Valid when values:
+#                                #   ALWAYS
+#                                #   CHANCE_SUCCESS   # parent passed its chance roll
+#                                #   CHANCE_FAIL      # parent failed its chance roll
+#                                #   APPLY_SUCCESS    # parent passed chance AND actually affected something
+#                                #   APPLY_FAIL       # parent passed chance BUT affected nothing (no targets / missed AOE / no valid center)
+#                                #   ANY_FAIL         # CHANCE_FAIL OR APPLY_FAIL
+#                                #
+#                                # Examples:
+#                                #   when: [APPLY_FAIL, CHANCE_FAIL]
+#                                #   when:
+#                                #     - APPLY_FAIL
+#                                #     - CHANCE_FAIL
 #
 #     # Effect-Specific Properties (use only those relevant to your effect type):
 #
@@ -143,9 +187,10 @@
 #                                # Valid values: 1-255 (1 = Level I, 2 = Level II, etc.)
 #                                # Default: 1
 #
-#     potion-duration:           # Integer - Potion effect duration in ticks (for POTION/AOE_POTION effects)
-#                                # Valid values: 1-32767 (20 ticks = 1 second)
-#                                # Default: 60 ticks (3 seconds)
+#     potion-duration:           # Integer - Potion effect duration in SECONDS (for POTION/AOE_POTION effects)
+#                                # (The plugin converts seconds to ticks: 1 second = 20 ticks)
+#                                # Valid values: 0-3600+
+#                                # Default: 3 seconds
 #
 #     damage:                    # Number - Extra damage amount (for PURE_DAMAGE effect)
 #                                # Valid values: Any positive decimal number
@@ -263,15 +308,25 @@
 #       - type:              # REQUIRED
 #         amount:            # REQUIRED
 #         operation:         # OPTIONAL
-#         # slot:            # OPTIONAL (only if you want to pin an attribute to a slot)
+#         slots:             # OPTIONAL (only if you want to pin an attribute to specific slots)
+#           ["slot", "slot", ...]
 #
 #     effects:               # OPTIONAL (map)
 #       <effect-id>:
 #         trigger:           # REQUIRED
 #         effect:            # REQUIRED
-#         target:            # REQUIRED
+#         target:            # SEMI-REQUIRED - for single-target effects (POTION/HEAL/etc). Not used for AOE_POTION/PARTICLES/SOUND
+#         center:            # Used for AOE_POTION/PARTICLES/SOUND (recommended; optional if you want defaults)
 #         chance:            # OPTIONAL
 #         cooldown:          # OPTIONAL
+#         effect-stack:      # OPTIONAL (chain other effects on the same item)
+#           <other-effect-id>: {}              # default 100% chance when called by the stack
+#           <other-effect-id-2>:
+#             chance: 0.35                     # optional: stack-only chance (0.0–1.0)
+#             when: [APPLY_FAIL, CHANCE_FAIL]  # optional: when this stack entry can attempt to trigger
+#
+#             # Valid when values:
+#             # ALWAYS, CHANCE_SUCCESS, CHANCE_FAIL, APPLY_SUCCESS, APPLY_FAIL, ANY_FAIL
 #
 #         # ─────────────────────────────
 #         # POTION / AOE_POTION OPTIONS
@@ -316,7 +371,19 @@
 #         # PARTICLES OPTIONS
 #         # ─────────────────────────────
 #         # effect: PARTICLES
-#         particle-type:     # e.g. FLAME, HEART, SOUL_FIRE_FLAME
+#         particle-type:             # Particle type (example: FLAME, HEART, SOUL_FIRE_FLAME)
+#
+#         # Optional customization:
+#         particle-shape:            # ORB, CIRCLE, SQUARE, CUBE
+#                                    # Default: ORB
+#         particle-radius:           # How far from the center particles can appear (blocks)
+#                                    # Default: 1.0   Limit: 0.0–10.0
+#         particle-count:            # How many particles appear each “pulse”
+#                                    # Default: 20    Limit: 0–200
+#         particle-duration:         # How long it keeps spawning (seconds). 0 = one-time burst
+#                                    # Default: 0     Limit: 0–30
+#         particle-interval-ticks:   # How often it spawns during duration (20 ticks = 1 second)
+#                                    # Default: 5     Limit: 1–20
 #
 #         # ─────────────────────────────
 #         # SOUND OPTIONS
@@ -373,20 +440,22 @@ equipment:
           target: ATTACKER
           chance: 0.30
           healing: 1.0
+          effect-stack:
+            soul-particles: {}
         void-weaken:
           trigger: ON_HIT
           effect: POTION
           target: VICTIM
           potion-type: WEAKNESS
-          potion-duration: 60
+          potion-duration: 15
           potion-level: 1
           chance: 0.25
         soul-particles:
           trigger: ON_HIT
           effect: PARTICLES
           particle-type: SOUL_FIRE_FLAME
-          target: VICTIM
-          chance: 0.1
+          center: VICTIM
+          chance: 0
     
     thunder-mace:
       material: MACE
@@ -459,7 +528,7 @@ equipment:
         crystalline-arrow:
           trigger: SHOOT_PROJECTILE
           effect: PARTICLES
-          target: SELF
+          center: SELF
           particle-type: END_ROD
           chance: 1.0
         backlash:
@@ -467,7 +536,7 @@ equipment:
           effect: POTION
           target: SELF
           potion-type: HARM
-          potion-duration: 20
+          potion-duration: 3
           potion-level: 4
           chance: 1.0  
 
@@ -499,7 +568,7 @@ equipment:
         ponder:
           trigger: ON_HIT
           effect: SOUND
-          target: VICTIM
+          center: VICTIM
           sound-type: ENTITY_VILLAGER_AMBIENT
           sound-volume: 1.0
           sound-pitch: 1.0
@@ -527,7 +596,7 @@ equipment:
         flame-particles:
           trigger: HOLDING
           effect: PARTICLES
-          target: SELF
+          center: SELF
           particle-type: FLAME
           chance: 0.1
 
@@ -581,7 +650,7 @@ equipment:
         storm-mark:
           trigger: ON_HIT
           effect: PARTICLES
-          target: VICTIM
+          center: VICTIM
           particle-type: ELECTRIC_SPARK
           chance: 1.0
 
@@ -607,7 +676,7 @@ equipment:
         flare-mark:
           trigger: PROJECTILE_HIT
           effect: PARTICLES
-          target: VICTIM
+          center: VICTIM
           particle-type: CRIT
           chance: 1.0    
 
@@ -631,7 +700,18 @@ equipment:
           potion-type: SPEED
           potion-duration: 10
           potion-level: 1
-          chance: 0.3  
+          chance: 0.3
+          effect-stack:
+            wind-sound:
+              chance: 1.0
+        wind-sound:
+          trigger: ON_HIT
+          effect: SOUND
+          center: ATTACKER
+          sound-type: ENTITY_BREEZE_WHIRL
+          sound-volume: 0.5
+          sound-pitch: 1.0
+          chance: 0
 
     steelwood-blade:
       material: WOODEN_SWORD
@@ -748,6 +828,82 @@ equipment:
         - type: ATTACK_DAMAGE
           amount: 1
           operation: ADD_NUMBER
+
+    roulette-sword:
+      material: GOLDEN_SWORD
+      name: "&6Roulette Sword"
+      lore:
+        - "&7Chances are you'll get what you deserve"
+      enchantments:
+        - type: FORTUNE
+          level: 7
+        - type: UNBREAKING
+          level: 7
+        - type: SHARPNESS
+          level: 7
+      effects:
+        roulette-spin:
+          trigger: ON_HIT
+          effect: SOUND
+          center: SELF
+          sound-type: ENTITY_PLAYER_LEVELUP
+          sound-volume: 1.0
+          sound-pitch: 1.0
+          chance: 1.0
+          cooldown: 3
+          effect-stack:
+            black:
+              chance: 0.2
+            red:
+              chance: 0.2
+            blue:
+              chance: 0.2
+            green:
+              chance: 0.2
+            white:
+              chance: 0.2
+        black:
+          trigger: ON_HIT
+          chance: 0
+          effect: POTION
+          target: SELF
+          potion-type: BLINDNESS
+          potion-duration: 10
+          potion-level: 5
+        red:
+          trigger: ON_HIT
+          chance: 0
+          effect: POTION
+          target: SELF
+          potion-type: STRENGTH
+          potion-duration: 20
+          potion-level: 1
+        white:
+          trigger: ON_HIT
+          chance: 0
+          effect: POTION
+          target: SELF
+          potion-type: SPEED
+          potion-duration: 20
+          potion-level: 2
+        green:
+          trigger: ON_HIT
+          chance: 0
+          effect: POTION
+          target: SELF
+          potion-type: HASTE
+          potion-duration: 20
+          potion-level: 2
+        blue:
+          trigger: ON_HIT
+          chance: 0
+          effect: POTION
+          target: SELF
+          potion-type: HARM
+          potion-duration: 3
+          potion-level: 1
+
+
         
       
        
@@ -877,7 +1033,7 @@ equipment:
         - type: GRAVITY
           amount: -0.10
           operation: ADD_SCALAR  
-          slot: BOOTS
+          slots: [feet]
       unbreakable: true
       effects:
         negate-fall-damage:
@@ -901,7 +1057,7 @@ equipment:
         sparkle:
           trigger: EQUIPPED
           effect: PARTICLES
-          target: SELF
+          center: SELF
           particle-type: HAPPY_VILLAGER
           chance: 0.05
 
@@ -1010,7 +1166,7 @@ equipment:
         damage-cast:
           trigger: EQUIPPED
           effect: AOE_POTION
-          target: SELF
+          center: SELF
           potion-type: INSTANT_DAMAGE
           potion-duration: 10
           potion-level: 1
@@ -1024,7 +1180,7 @@ equipment:
         shadow-cast:
           trigger: EQUIPPED
           effect: AOE_POTION
-          target: SELF
+          center: SELF
           potion-type: DARKNESS
           potion-duration: 10
           potion-level: 1
@@ -1064,9 +1220,11 @@ equipment:
         - type: ARMOR
           amount: 2
           operation: ADD_NUMBER
+          slots: [head]
         - type: MAX_HEALTH
           amount: 4
           operation: ADD_NUMBER
+          slots: [head]
       effects:
         keen-mind:
           trigger: EQUIPPED
@@ -1092,9 +1250,11 @@ equipment:
         - type: ARMOR
           amount: 4
           operation: ADD_NUMBER
+          slots: [chest]
         - type: MAX_HEALTH
           amount: 8
           operation: ADD_NUMBER
+          slots: [chest]
       effects:
         fearless-heart:
           trigger: EQUIPPED
@@ -1120,9 +1280,11 @@ equipment:
         - type: ARMOR
           amount: 3
           operation: ADD_NUMBER
+          slots: [legs]
         - type: MAX_HEALTH
           amount: 6
           operation: ADD_NUMBER
+          slots: [legs]
       effects:
         weight-bearer:
           trigger: EQUIPPED
@@ -1147,9 +1309,11 @@ equipment:
         - type: ARMOR
           amount: 1
           operation: ADD_NUMBER
+          slots: [feet]
         - type: MAX_HEALTH
           amount: 2
           operation: ADD_NUMBER
+          slots: [feet]
       effects:
         path-seeker:
           trigger: EQUIPPED
@@ -1158,7 +1322,66 @@ equipment:
           potion-type: SPEED
           potion-duration: 10
           potion-level: 1
-          chance: 1.0    
+          chance: 1.0
+
+    damaged-ender-chestplate:
+      material: DIAMOND_CHESTPLATE
+      name: "&cDamaged Ender Chestplate"
+      lore: "&7Cracked and aged, its enchanted effects are a bit... chaotic"
+      enchantments:
+        - type: PROTECTION
+          level: 3
+        - type: UNBREAKING
+          level: 10
+        - type: FEATHER_FALLING
+          level: 3
+      effects:
+        damage-cast:
+          trigger: ON_HIT_TAKEN
+          effect: AOE_POTION
+          center: SELF
+          potion-type: INSTANT_DAMAGE
+          potion-duration: 1
+          potion-level: 1
+          radius: 4.0
+          aoe-include-caster: true
+          aoe-include-allies: true
+          chance: 0.1
+          cooldown: 5
+          effect-stack:
+            levitation:
+              chance: 0.25
+              when: [CHANCE_FAIL]
+        levitation:
+          trigger: ON_HIT_TAKEN
+          effect: POTION
+          target: SELF
+          potion-type: LEVITATION
+          potion-duration: 2
+          potion-level: 6
+          chance: 0
+        reinforcement:
+          trigger: ON_HIT_TAKEN
+          effect: POTION
+          target: SELF
+          potion-type: REGENERATION
+          potion-duration: 10
+          potion-level: 2
+          chance: 0.2
+          cooldown: 3
+          effect-stack:
+            high-energy:
+              chance: 0.2
+              when: [CHANCE_FAIL]
+        high-energy:
+          trigger: ON_HIT_TAKEN
+          effect: POTION
+          target: SELF
+          potion-type: SPEED
+          potion-duration: 10
+          potion-level: 2
+          chance: 0
+
 
         
 
@@ -1337,13 +1560,13 @@ equipment:
         fluff-particles:
           trigger: ON_HIT_TAKEN
           effect: PARTICLES
-          target: SELF
+          center: SELF
           particle-type: CLOUD
           chance: 1.0
-        soul-remenants:
+        soul-remnants:
           trigger: ON_HIT_TAKEN
           effect: SOUND
-          target: SELF
+          center: SELF
           sound-type: GOAT_SCREAMING_AMBIENT
           sound-volume: 1.0
           sound-pitch: 1.0
@@ -1362,14 +1585,18 @@ equipment:
           trigger: RIGHT_CLICK
           effect: AOE_POTION
           potion-type: HEAL
+          potion-duration: 1
           radius: 5.0
           aoe-include-caster: true
           aoe-include-allies: true
           aoe-include-players: true
           aoe-include-others: false
-          target: SELF
+          center: SELF
           chance: 1.0
           cooldown: 10
+          effect-stack:
+            minor-hearts:
+              chance: 1.0
         major-heal:
           trigger: RIGHT_CLICK
           effect: HEAL
@@ -1377,6 +1604,26 @@ equipment:
           chance: 0.1
           healing: 6.0
           cooldown: 30
+          effect-stack:
+            major-hearts:
+              chance: 1.0
+        major-hearts:
+          trigger: RIGHT_CLICK
+          effect: PARTICLES
+          center: SELF
+          particle-shape: CIRCLE
+          particle-type: HEART
+          particle-count: 10
+          chance: 0
+        minor-hearts:
+          trigger: RIGHT_CLICK
+          effect: PARTICLES
+          center: SELF
+          particle-shape: CIRCLE
+          particle-type: HEART
+          particle-count: 5
+          particle-radius: 5.0
+          chance: 0
 
     phantom-charm:
       material: PHANTOM_MEMBRANE
@@ -1406,7 +1653,7 @@ equipment:
         phantom-cry:
           trigger: RIGHT_CLICK
           effect: SOUND
-          target: SELF
+          center: SELF
           sound-type: PHANTOM_AMBIENT
           sound-volume: 0.2
           sound-pitch: 1.0
@@ -1433,6 +1680,34 @@ equipment:
             - SLOW_FALLING
           cooldown: 0    
       unbreakable: true
+
+    smoke-bomb:
+      material: SNOWBALL
+      name: "&8Smoke Bomb"
+      effects:
+        smoky:
+          trigger: PROJECTILE_HIT
+          effect: AOE_POTION
+          center: LOCATION
+          potion-type: BLINDNESS
+          radius: 5.0
+          aoe-include-caster: true
+          aoe-include-allies: true
+          aoe-include-players: true
+          aoe-include-others: true
+          potion-duration: 4
+          potion-level: 1
+          chance: 1.0
+        smoke-landing:
+          trigger: PROJECTILE_HIT
+          effect: PARTICLES
+          center: LOCATION
+          particle-type: SMOKE
+          particle-shape: ORB
+          particle-radius: 3.5
+          particle-count: 60
+          particle-duration: 4
+          particle-interval-ticks: 2
 
       
 

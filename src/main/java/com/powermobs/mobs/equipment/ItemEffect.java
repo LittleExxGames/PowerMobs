@@ -1,8 +1,6 @@
 package com.powermobs.mobs.equipment;
 
-import com.powermobs.mobs.equipment.items.EffectType;
-import com.powermobs.mobs.equipment.items.TargetType;
-import com.powermobs.mobs.equipment.items.TriggerType;
+import com.powermobs.mobs.equipment.items.*;
 import lombok.Getter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.potion.PotionEffectType;
@@ -17,12 +15,18 @@ import java.util.Map;
  */
 @Getter
 public class ItemEffect {
+    private final String itemId;
+    private final String effectId;
+    private final Map<String, Map<String, Object>> effectStack;
 
     private final TriggerType trigger;
     private final EffectType effectType;
-    private final TargetType targetType;
     private final double chance;
     private final int cooldown;
+
+    private final boolean targetProvided;
+    private final TargetType targetType; //Single target
+    private final CenterType centerType; //AOE
 
     // Effect-specific properties
     private final String potionType;
@@ -32,7 +36,15 @@ public class ItemEffect {
     private final double healing;
     private final int fireTicks;
     private final double knockbackStrength;
+
     private final String particleType;
+    private final Shape particleShape;
+    private final double particleRadius;
+    private final int particleCount;
+    private final int particleDurationSeconds;
+    private final int particleIntervalTicks;
+
+
     private final String soundType;
     private final float soundVolume;
     private final float soundPitch;
@@ -54,10 +66,16 @@ public class ItemEffect {
     /**
      * Creates a new item effect from configuration
      */
-    public ItemEffect(ConfigurationSection section) {
+    public ItemEffect(String itemId, ConfigurationSection section) {
+        this.itemId = itemId;
+        this.effectId = section.getName();
+
         this.trigger = parseEnum(TriggerType.class, section.getString("trigger", "HOLDING"));
         this.effectType = parseEnum(EffectType.class, section.getString("effect", "POTION"));
+
+        this.targetProvided = section.contains("target");
         this.targetType = parseEnum(TargetType.class, section.getString("target", "SELF"));
+        this.centerType = parseEnum(CenterType.class, section.getString("center", defaultCenter(this.trigger).name()));
 
         this.chance = Math.max(0.0, Math.min(1.0, section.getDouble("chance", 1.0)));
         this.cooldown = Math.max(0, section.getInt("cooldown", 0));
@@ -70,7 +88,15 @@ public class ItemEffect {
         this.fireTicks = Math.max(0, section.getInt("fire-ticks", 60));
         this.knockbackStrength = Math.max(0.0, section.getDouble("knockback-strength", 1.0));
         this.radius = Math.max(0.0, section.getDouble("radius", 5.0));
+
         this.particleType = section.getString("particle-type", "HEART");
+        this.particleShape = parseEnum(Shape.class, section.getString("particle-shape", "ORB"));
+        this.particleRadius = Math.max(0.0, Math.min(10.0, section.getDouble("particle-radius", 1.0)));
+        this.particleCount = Math.max(0, Math.min(200, section.getInt("particle-count", 20)));               // per interval
+        this.particleDurationSeconds = Math.max(0, Math.min(30, section.getInt("particle-duration", 0)));     // 0 = single burst
+        this.particleIntervalTicks = Math.max(1, Math.min(20, section.getInt("particle-interval-ticks", 5))); // 1–20
+
+
         this.soundType = section.getString("sound-type", "ENTITY_EXPERIENCE_ORB_PICKUP");
         this.soundVolume = (float) Math.max(0.0, section.getDouble("sound-volume", 1.0));
         this.soundPitch = (float) Math.max(0.0, section.getDouble("sound-pitch", 1.0));
@@ -108,6 +134,30 @@ public class ItemEffect {
             }
         }
         this.immunePotionMaxLevels = Collections.unmodifiableMap(tmp);
+
+        ConfigurationSection stackSection = section.getConfigurationSection("effect-stack");
+        Map<String, Map<String, Object>> tmpStack = new HashMap<>();
+        if (stackSection != null) {
+            for (String childId : stackSection.getKeys(false)) {
+                ConfigurationSection childSection = stackSection.getConfigurationSection(childId);
+                Map<String, Object> overrides = (childSection != null) ? childSection.getValues(true) : Collections.emptyMap();
+                tmpStack.put(childId, overrides != null ? overrides : Collections.emptyMap());
+            }
+        }
+        this.effectStack = Collections.unmodifiableMap(tmpStack);
+    }
+
+    public boolean hasEffectStack() {
+        return effectStack != null && !effectStack.isEmpty();
+    }
+
+    private static CenterType defaultCenter(TriggerType trigger) {
+        return switch (trigger) {
+            case ON_HIT -> CenterType.VICTIM;
+            case ON_HIT_TAKEN -> CenterType.SELF;
+            case PROJECTILE_HIT -> CenterType.LOCATION;
+            default -> CenterType.SELF;
+        };
     }
 
     /**
@@ -130,21 +180,43 @@ public class ItemEffect {
         try {
             return Enum.valueOf(enumClass, value.toUpperCase());
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid " + enumClass.getSimpleName() + ": " + value +
-                    ". Using default: " + enumClass.getEnumConstants()[0]);
             return enumClass.getEnumConstants()[0];
         }
     }
 
-    public boolean isValid() {
+    /** For 'at a place' or AOE effects */
+    public boolean usesCenter() {
+        return effectType == EffectType.AOE_POTION
+                || effectType == EffectType.PARTICLES
+                || effectType == EffectType.SOUND;
+    }
+
+    /** Effects that target a specific entity */
+    public boolean usesTarget() {
+        return !usesCenter();
+    }
+
+    public List<String> validateProblems() {
+        List<String> problems = new java.util.ArrayList<>();
+
+        if (usesTarget() && !targetProvided) {
+            problems.add("Missing required 'target' (effect=" + effectType + ", trigger=" + trigger + ")");
+        }
+        if (usesCenter() && targetProvided) {
+            problems.add("'target' is ignored for " + effectType + " (use 'center' instead)");
+        }
+
         if (effectType == EffectType.POTION || effectType == EffectType.AOE_POTION) {
-            try {
-                PotionEffectType.getByName(potionType.toUpperCase());
-                return true;
-            } catch (Exception e) {
-                return false;
+            PotionEffectType type = PotionEffectType.getByName(potionType.toUpperCase());
+            if (type == null) {
+                problems.add("Invalid potion-type '" + potionType + "'");
             }
         }
-        return true;
+
+        return problems;
+    }
+
+    public boolean isValid() {
+        return validateProblems().isEmpty();
     }
 }

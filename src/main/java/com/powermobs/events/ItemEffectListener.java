@@ -212,9 +212,24 @@ public class ItemEffectListener implements Listener {
         ItemStack off = shooter.getEquipment() != null ? shooter.getEquipment().getItemInOffHand() : null;
 
         // Prefer main hand; if nothing matches, try offhand
-        if (!processShootForItem(shooter, proj, main)) {
+        boolean mainProcessed = processShootForItem(shooter, proj, main);
+        if (!mainProcessed) {
             processShootForItem(shooter, proj, off);
         }
+
+        // Tag projectile for PROJECTILE_HIT
+        if (!tagProjectileFromItem(proj, main)) {
+            tagProjectileFromItem(proj, off);
+        }
+    }
+
+    private boolean tagProjectileFromItem(Projectile proj, ItemStack item) {
+        if (item == null) return false;
+        String id = plugin.getItemEffectManager().getCustomItemId(item);
+        if (id == null) return false;
+
+        proj.getPersistentDataContainer().set(projectileItemKey, PersistentDataType.STRING, id);
+        return true;
     }
 
     private boolean processShootForItem(LivingEntity shooter, Projectile proj, ItemStack item) {

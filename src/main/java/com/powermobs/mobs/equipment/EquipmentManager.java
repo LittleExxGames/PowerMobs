@@ -62,7 +62,7 @@ public class EquipmentManager {
                 ConfigurationSection section = weaponsSection.getConfigurationSection(id);
                 if (section != null) {
                     try {
-                        ItemStack item = loadEquipmentItem(section);
+                        ItemStack item = loadEquipmentItem(id, section);
                         item = setCustomItemId(id, item);
                         this.weapons.put(id, item);
                         this.plugin.debug("Loaded weapon: " + id, "save_and_load");
@@ -81,7 +81,7 @@ public class EquipmentManager {
                 ConfigurationSection section = armorSection.getConfigurationSection(id);
                 if (section != null) {
                     try {
-                        ItemStack item = loadEquipmentItem(section);
+                        ItemStack item = loadEquipmentItem(id, section);
                         item = setCustomItemId(id, item);
                         this.armor.put(id, item);
                         this.plugin.debug("Loaded armor: " + id, "save_and_load");
@@ -99,7 +99,7 @@ public class EquipmentManager {
                 ConfigurationSection section = itemSection.getConfigurationSection(id);
                 if (section != null) {
                     try {
-                        ItemStack item = loadEquipmentItem(section);
+                        ItemStack item = loadEquipmentItem(id, section);
                         item = setCustomItemId(id, item);
                         this.uniques.put(id, item);
                         this.plugin.debug("Loaded unique item: " + id, "save_and_load");
@@ -124,7 +124,7 @@ public class EquipmentManager {
      * @param section The configuration section
      * @return The loaded item
      */
-    private ItemStack loadEquipmentItem(ConfigurationSection section) {
+    private ItemStack loadEquipmentItem(String itemId, ConfigurationSection section) {
         String materialName = section.getString("material");
         if (materialName == null) {
             throw new IllegalArgumentException("Material is required");
@@ -239,11 +239,9 @@ public class EquipmentManager {
                     }
 
                     try {
+                        String keyStr = "attr-" + sanitizeKeyPart(itemId) + "-" + sanitizeKeyPart(typeName) + "-" + sanitizeKeyPart(slotName);
                         AttributeModifier modifier = new AttributeModifier(
-                                new NamespacedKey(
-                                        plugin,
-                                        typeName.toLowerCase() + "-" + slotName.toLowerCase()
-                                ),
+                                new NamespacedKey(plugin, keyStr),
                                 amount,
                                 operation,
                                 slotGroup
@@ -277,6 +275,10 @@ public class EquipmentManager {
         }
         return item;
     }
+    private static String sanitizeKeyPart(String s) {
+        if (s == null) return "null";
+            return s.toLowerCase().replaceAll("[^a-z0-9/._-]", "_");
+        }
 
     /**
      * Loads spawn blocker items and adds them to the uniques collection
