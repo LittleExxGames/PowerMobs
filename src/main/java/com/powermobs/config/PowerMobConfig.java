@@ -288,25 +288,25 @@ public class PowerMobConfig implements IPowerMobConfig {
      */
     public PowerMobConfig(String id) {
         this.id = id;
-        this.entityType = EntityType.ZOMBIE; // Default entity type
+        this.entityType = EntityType.ZOMBIE;
         this.name = "NEW POWER MOB";
 
-        // Default health values
+
         this.minHealth = 20;
         this.maxHealth = 30;
         this.healthWeight = 100;
 
-        // Default damage multiplier
+
         this.minDamageMultiplier = 1.0;
         this.maxDamageMultiplier = 1.0;
         this.damageWeight = 100;
 
-        // Default speed multiplier
+
         this.minSpeedMultiplier = 1.0;
         this.maxSpeedMultiplier = 1.0;
         this.speedWeight = 100;
 
-        // Initialize empty collections
+
         this.attributes = new LinkedHashMap<>();
         this.possibleAbilities = new LinkedHashMap<>();
         this.possibleEquipment = new LinkedHashMap<>();
@@ -317,27 +317,27 @@ public class PowerMobConfig implements IPowerMobConfig {
         this.possibleEquipment.put("possible-leggings", new ArrayList<>());
         this.possibleEquipment.put("possible-boots", new ArrayList<>());
 
-        // Default glow settings
+
         this.glowing = false;
         this.minGlowTime = 100;
         this.maxGlowTime = 100;
 
-        // Default drop settings
+
         this.minDrops = 0;
         this.maxDrops = 2;
         this.dropWeight = 100;
 
-        // Default experience settings
+
         this.experienceChance = 1.0;
         this.experienceMinAmount = 10;
         this.experienceMaxAmount = 15;
         this.experienceWeight = 100;
 
-        // Initialize empty drops list
+
         this.drops = new ArrayList<>();
 
-        // Default spawn conditions
-        this.spawnCondition = new SpawnCondition(); // Uses default constructor
+
+        this.spawnCondition = new SpawnCondition();
     }
 
     public Map<String, Object> toConfigMap() {

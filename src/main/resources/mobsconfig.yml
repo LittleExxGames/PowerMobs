@@ -146,9 +146,24 @@
 #   despawn-time:               # String/Number (OPTIONAL) - Seconds before auto-despawn
 #                               # Format: "<value>" or "min-max". 0 or missing = no forced despawn.
 #
-#   dimensions:                 # List[String] (OPTIONAL) - Allowed dimensions
+#   worlds:                     # List[String] (OPTIONAL) - Allowed world names
+#                               # Examples: world, world_nether, world_the_end, customWorld
+#                               # Missing = all worlds allowed.
+#                               # Empty list [] = NO worlds allowed (disables spawning everywhere).
+#                               #
+#                               # Note: worlds must be real worlds. Unknown worlds will be shown as (inactive)
+#                               # in the UI and removed when you save.
+#
+#   dimensions:                 # List[String] (OPTIONAL, DEV/PORTABLE SHORTHAND)
 #                               # Examples: OVERWORLD, NETHER, THE_END
-#                               # Empty or missing = all dimensions.
+#                               # This is a universal shorthand used on initial creation when you don't know
+#                               # a server's world names.
+#                               #
+#                               # Behavior:
+#                               # - If 'worlds' is missing and 'dimensions' is present, the plugin converts
+#                               #   dimensions -> worlds at load time using each world's defined dimention.
+#                               # - When you save spawn-conditions in-game, the UI writes 'worlds' and
+#                               #   'dimensions' is removed.
 #
 #   min-x, max-x:               # Number (OPTIONAL) - Allowed X distance from world spawn
 #   min-z, max-z:               # Number (OPTIONAL) - Allowed Z distance from world spawn
@@ -169,12 +184,11 @@
 # NOTES / BEST PRACTICES
 # ===============================
 # - <mob-id> must be unique under power-mobs.
-# - Most ranges ("min-max") are used with a weight field; for small tweaks you usually
-#   only change the numbers, not the weights.
+# - Most ranges ("min-max") are used with a weight field;
 # - Equipment and drops can reference:
 #   - Vanilla materials (DIAMOND_SWORD, NETHERITE_INGOT, etc.)
 #   - Custom item IDs from itemsconfig.yml (e.g. "flame-sword", "infernal-helmet").
-# - The in‑game editor will generate correct structure for you; use this file mainly
+# - The in‑game editor will generate the correct structure for you; use this file mainly
 #   to polish numbers, names, ranges, and add/remove simple entries.
 
 power-mobs:
@@ -406,14 +420,13 @@ power-mobs:
         amount: 2-5
         amount-weight: 100
     spawn-conditions:
-      spawn-chance: 0.0
+      spawn-chance: 0.01
       spawn-delay: 500-1200
       spawn-delay-weight: 100
       replace-type-only: true
       despawn-time: '1800'
       dimensions:
         - OVERWORLD
-        - CUSTOM
       min-x: infinite
       max-x: infinite
       min-z: infinite
@@ -782,7 +795,6 @@ power-mobs:
       despawn-time: '1800'
       dimensions:
         - OVERWORLD
-        - CUSTOM
       min-x: infinite
       max-x: infinite
       min-z: infinite

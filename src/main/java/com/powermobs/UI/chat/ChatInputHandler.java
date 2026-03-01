@@ -41,7 +41,6 @@ public class ChatInputHandler implements Listener {
         ChatInputSession session = new ChatInputSession(inputType, callback);
         activeSessions.put(playerId, session);
 
-        // Send instructions to player
         sendInstructions(player, inputType);
     }
 
@@ -65,15 +64,14 @@ public class ChatInputHandler implements Listener {
         UUID playerId = player.getUniqueId();
 
         if (!activeSessions.containsKey(playerId)) {
-            return; // No active session
+            return;
         }
 
-        event.setCancelled(true); // Cancel the chat message
+        event.setCancelled(true);
 
         ChatInputSession session = activeSessions.get(playerId);
         String input = event.getMessage().trim();
 
-        // Check for cancel command
         if (input.equalsIgnoreCase("cancel") || input.equalsIgnoreCase("exit")) {
             activeSessions.remove(playerId);
             player.sendMessage(ChatColor.YELLOW + "Input cancelled. Returning to configuration menu.");
@@ -132,7 +130,6 @@ public class ChatInputHandler implements Listener {
                 case WEIGHT -> validateWeight(input);
                 case RANGE -> validateIntRange(input, "Range", 1000);
                 case ENCHANTMENTS -> validateEnchantment(input);
-                case DIMENSIONS -> validateBooleans(input, 3);
                 case TIMES -> validateBooleans(input, 2);
                 case COORDINATES -> validateDistance(input);
                 case BIOME_CONFIG -> validateBiome(input);
@@ -162,16 +159,10 @@ public class ChatInputHandler implements Listener {
                 return new ChatInputResult(false, null, "Text can only contain letters, numbers, spaces, and dashes. Special characters are not allowed.");
             }
 
-            // Replace spaces with dashes and collapse multiple spaces/dashes
             String processedText = text.replaceAll("\\s+", "-");
-
-            // Collapse multiple consecutive dashes into single dash
             processedText = processedText.replaceAll("-+", "-");
-
-            // Remove any leading or trailing dashes that might result from trimming
             processedText = processedText.replaceAll("^-+|-+$", "");
 
-            // Ensure we still have content after processing
             if (processedText.isEmpty()) {
                 return new ChatInputResult(false, null, "Text cannot be empty after processing. Please provide valid content.");
             }

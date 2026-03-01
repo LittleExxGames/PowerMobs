@@ -1,3 +1,9 @@
+V1.2.1 - 2/28/2026
+- Fixed a spawn delay bug that made spawn delay calculations using the wrong values.
+- Replaced dimensions settings with world settings so mobs can now specify which world they spawn in.(including dimensions)
+
+Mobs config instructions have been updated to reflect this change upon mobconfig.yml regeneration.
+
 V1.2.0 - 2/20/2026
 - BIG UPDATE: Implemented effect stacking! Each effect defined on an item can be placed as a possible effect to trigger based on the result of its parent effect.
 - Items target now is separated based on if it is AOE or not. AOE now uses 'center:' and single target use uses the original 'target:'.

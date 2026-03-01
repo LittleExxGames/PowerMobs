@@ -2,6 +2,7 @@ package com.powermobs.config;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.utils.WeightedRandom;
+import com.powermobs.utils.WorldCatalog;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -25,7 +26,9 @@ public class SpawnCondition {
     private boolean replaceTypeOnly;
     private int minDespawnTime;
     private int maxDespawnTime;
-    private Set<World.Environment> dimensions;
+    //private Set<World.Environment> dimensions;
+
+    private Set<String> worlds;
     private int minX;
     private int maxX;
     private int minZ;
@@ -47,7 +50,7 @@ public class SpawnCondition {
         this.minDespawnTime = 1800; // 30min
         this.maxDespawnTime = 1800;
         this.replaceTypeOnly = true;
-        this.dimensions = EnumSet.allOf(World.Environment.class);
+        this.worlds = null;
         this.minX = Integer.MIN_VALUE;
         this.maxX = Integer.MAX_VALUE;
         this.minZ = Integer.MIN_VALUE;
@@ -67,7 +70,7 @@ public class SpawnCondition {
         this.replaceTypeOnly = copy.isReplaceTypeOnly();
         this.minDespawnTime = copy.getMinDespawnTime();
         this.maxDespawnTime = copy.getMaxDespawnTime();
-        this.dimensions = new LinkedHashSet<>(copy.getDimensions());
+        this.worlds = (copy.getWorlds() == null) ? null : new LinkedHashSet<>(copy.getWorlds());
         this.minX = copy.getMinX();
         this.maxX = copy.getMaxX();
         this.minY = copy.getMinY();
@@ -118,27 +121,13 @@ public class SpawnCondition {
             this.maxDespawnTime = 1800;
         }
 
-        // Dimensions
-        this.dimensions = EnumSet.noneOf(World.Environment.class);
-        List<String> dimStrings = section.getStringList("dimensions");
-        if (dimStrings.isEmpty()) {
-            // Default to all dimensions if not specified
-            this.dimensions.addAll(EnumSet.allOf(World.Environment.class));
+        if (section.contains("worlds")) {
+            List<String> worldList = section.getStringList("worlds");
+            this.worlds = new LinkedHashSet<>(worldList);
+        } else if (section.contains("dimensions")) {
+            this.worlds = convertDimensionsToWorlds(section.getStringList("dimensions"));
         } else {
-            for (String dim : dimStrings) {
-                try {
-                    // Handle the "OVERWORLD" -> "NORMAL" mapping
-                    if (dim.equalsIgnoreCase("OVERWORLD")) {
-                        this.dimensions.add(World.Environment.NORMAL);
-                    } else {
-                        World.Environment env = World.Environment.valueOf(dim.toUpperCase());
-                        this.dimensions.add(env);
-                    }
-
-                } catch (IllegalArgumentException e) {
-                    // Skip invalid dimension
-                }
-            }
+            this.worlds = null;
         }
 
         // X distance
@@ -207,16 +196,9 @@ public class SpawnCondition {
             map.put("despawn-time", this.minDespawnTime + "-" + this.maxDespawnTime);
         }
 
-        // Convert dimensions to string list (handle NORMAL -> OVERWORLD mapping)
-        List<String> dimensionStrings = new ArrayList<>();
-        for (World.Environment env : this.dimensions) {
-            if (env == World.Environment.NORMAL) {
-                dimensionStrings.add("OVERWORLD");
-            } else {
-                dimensionStrings.add(env.name());
-            }
+        if (this.worlds != null) {
+            map.put("worlds", new ArrayList<>(this.worlds));
         }
-        map.put("dimensions", dimensionStrings);
 
 
         // Add coordinate boundaries only if they're not infinite
@@ -284,10 +266,10 @@ public class SpawnCondition {
             return false;
         }
 
-        // Check dimension
-        if (!this.dimensions.contains(world.getEnvironment())) {
-            plugin.debug("FAILED spawn condition: Dimension check failed. Current: " + world.getEnvironment() +
-                    ", Allowed: " + this.dimensions, "mob_spawning");
+        // Check world allow-list
+        if (this.worlds != null && !this.worlds.contains(world.getName())) {
+            plugin.debug("FAILED spawn condition: World check failed. Current: " + world.getName() +
+                    ", Allowed: " + this.worlds, "mob_spawning");
             return false;
         }
 
@@ -339,7 +321,7 @@ public class SpawnCondition {
     }
 
     public int getActualSpawnDelay() {
-        return WeightedRandom.getWeightedRandom(this.spawnDelayWeight, this.minSpawnDelay, this.spawnDelayWeight);
+        return WeightedRandom.getWeightedRandom(this.minSpawnDelay, this.maxSpawnDelay, this.spawnDelayWeight);
     }
 
     public int getActualDespawnTime() {
@@ -353,5 +335,37 @@ public class SpawnCondition {
     public enum TimeCondition {
         DAY,
         NIGHT
+    }
+
+    private Set<String> convertDimensionsToWorlds(List<String> dimStrings) {
+        if (dimStrings == null || dimStrings.isEmpty()) {
+            return null;
+        }
+
+        EnumSet<World.Environment> allowed = EnumSet.noneOf(World.Environment.class);
+        for (String dim : dimStrings) {
+            if (dim == null) continue;
+            try {
+                if (dim.equalsIgnoreCase("OVERWORLD")) {
+                    allowed.add(World.Environment.NORMAL);
+                } else {
+                    allowed.add(World.Environment.valueOf(dim.toUpperCase()));
+                }
+            } catch (IllegalArgumentException ignored) {
+                // ignore invalid legacy value
+            }
+        }
+
+        if (allowed.isEmpty() || allowed.containsAll(EnumSet.allOf(World.Environment.class))) {
+            return null;
+        }
+
+        Set<String> resolved = WorldCatalog.resolveWorldNamesForEnvironments(allowed);
+
+        if (resolved == null || resolved.isEmpty()) {
+            return null;
+        }
+
+        return new LinkedHashSet<>(resolved);
     }
 }

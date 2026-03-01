@@ -8,6 +8,8 @@ import com.powermobs.config.BiomeGroupManager;
 import com.powermobs.config.IPowerMobConfig;
 import com.powermobs.config.PowerManager;
 import com.powermobs.config.SpawnCondition;
+import com.powermobs.utils.WorldCatalog;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -15,10 +17,9 @@ import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class MobSpawnConditionsPage extends AbstractGUIPage {
 
@@ -26,6 +27,11 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
     private String selectedMobId;
     private int currentPage = 0;
     private SpawnCondition tempConfig = null;
+
+    private List<String> worldOrder = new ArrayList<>();
+    private Map<String, Boolean> worldActiveMap = new LinkedHashMap<>();
+    private Set<String> knownWorldNames = new LinkedHashSet<>(); // NEW: Bukkit + Multiverse known worlds
+    private int selectedWorldIndex = 0;
 
 
     public MobSpawnConditionsPage(GUIPageManager pageManager, GUIManager guiManager) {
@@ -119,18 +125,7 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         );
         inventory.setItem(14, zDisplay);
 
-        // Dimensions config
-        List<String> dimensions = new ArrayList<>();
-        dimensions.add(ChatColor.GRAY + "Click to modify");
-        for (World.Environment dimension : tempConfig.getDimensions()) {
-            dimensions.add(ChatColor.BLUE + dimension.name());
-        }
-        ItemStack dimensionsDisplay = createGuiItem(
-                Material.END_PORTAL_FRAME,
-                ChatColor.LIGHT_PURPLE + "Current spawnable dimensions:",
-                dimensions
-        );
-        inventory.setItem(10, dimensionsDisplay);
+        buildWorldSelectorItem();
 
         // Time conditions
         List<String> times = new ArrayList<>();
@@ -159,6 +154,114 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         );
         inventory.setItem(45, saveButton);
 
+    }
+
+    private void buildWorldSelectorItem() {
+        refreshWorldLists();
+
+        if (selectedWorldIndex < 0) selectedWorldIndex = 0;
+        if (!worldOrder.isEmpty() && selectedWorldIndex >= worldOrder.size()) selectedWorldIndex = 0;
+
+        Set<String> selected = tempConfig.getWorlds(); // null = all worlds allowed
+
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Left-click: toggle world");
+        lore.add(ChatColor.GRAY + "Right-click: cycle selection");
+
+        if (worldOrder.isEmpty()) {
+            lore.add(ChatColor.RED + "No worlds found.");
+            inventory.setItem(10, createGuiItem(
+                    Material.END_PORTAL_FRAME,
+                    ChatColor.LIGHT_PURPLE + "Spawnable Worlds",
+                    lore
+            ));
+            return;
+        }
+
+        String current = worldOrder.get(selectedWorldIndex);
+        lore.add(ChatColor.YELLOW + "Selected: " + ChatColor.WHITE + current);
+
+        for (String worldName : worldOrder) {
+            boolean isKnown = knownWorldNames.contains(worldName);
+            boolean isActive = Boolean.TRUE.equals(worldActiveMap.get(worldName));
+            boolean allowed = (selected == null) || selected.contains(worldName);
+
+            if (!isKnown) {
+                // Unknown / not real world => show dark gray and indicate inactive
+                String prefix = allowed ? (ChatColor.DARK_GRAY + "✓ ") : (ChatColor.DARK_GRAY + "✗ ");
+                lore.add(prefix + ChatColor.DARK_GRAY + worldName + " (inactive)");
+                continue;
+            }
+
+            ChatColor lineColor = isActive ? ChatColor.GRAY : ChatColor.DARK_GRAY;
+            String prefix = allowed ? (ChatColor.DARK_GREEN + "✓ ") : (ChatColor.RED + "✗ ");
+            String suffix = isActive ? "" : (ChatColor.DARK_GRAY + " (inactive)");
+
+            ChatColor nameColor = worldName.equals(current) ? ChatColor.GREEN : lineColor;
+            lore.add(prefix + nameColor + worldName + suffix);
+        }
+
+        inventory.setItem(10, createGuiItem(
+                Material.END_PORTAL_FRAME,
+                ChatColor.LIGHT_PURPLE + "Spawnable Worlds",
+                lore
+        ));
+    }
+
+    private void refreshWorldLists() {
+        // Known worlds = Bukkit + Multiverse (even if inactive/unloaded)
+        worldActiveMap = loadWorldActiveMap();
+        knownWorldNames = new LinkedHashSet<>(worldActiveMap.keySet());
+
+        worldOrder = new ArrayList<>(knownWorldNames);
+
+        // Append unknown worlds found in config so user can see them (inactive, not enableable)
+        Set<String> selected = tempConfig != null ? tempConfig.getWorlds() : null;
+        if (selected != null) {
+            for (String w : selected) {
+                if (!knownWorldNames.contains(w) && !worldActiveMap.containsKey(w)) {
+                    worldActiveMap.put(w, false);
+                    worldOrder.add(w);
+                }
+            }
+        }
+    }
+
+    private Map<String, Boolean> loadWorldActiveMap() {
+        return new LinkedHashMap<>(WorldCatalog.getKnownWorldActiveMap());
+    }
+
+    private void toggleSelectedWorld() {
+        if (worldOrder.isEmpty()) return;
+
+        String worldName = worldOrder.get(selectedWorldIndex);
+        boolean isKnown = knownWorldNames.contains(worldName);
+
+        Set<String> worlds = tempConfig.getWorlds();
+        if (worlds == null) {
+            // Convert "all enabled" into an explicit set of known worlds (unknown worlds excluded)
+            worlds = new LinkedHashSet<>(knownWorldNames);
+            tempConfig.setWorlds(worlds);
+        }
+
+        if (!isKnown) {
+            // Unknown worlds cannot be enabled; allow removal if present
+            worlds.remove(worldName);
+            return;
+        }
+
+        if (worlds.contains(worldName)) {
+            worlds.remove(worldName);
+        } else {
+            worlds.add(worldName);
+        }
+    }
+
+    private void pruneUnknownWorldsBeforeSave() {
+        if (tempConfig == null || tempConfig.getWorlds() == null) return;
+
+        Set<String> known = loadWorldActiveMap().keySet();
+        tempConfig.getWorlds().removeIf(w -> !known.contains(w));
     }
 
 
@@ -243,10 +346,19 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
             });
         }
         if (slot == 10) {
-            startChatInput(player, ChatInputType.DIMENSIONS, (value, p) -> {
-                updateDimensions(value);
-                pageManager.navigateTo("mob_spawn_conditions", false, p);
-            });
+            if (worldOrder.isEmpty()) return true;
+
+            if (clickType == ClickType.RIGHT) {
+                selectedWorldIndex = (selectedWorldIndex + 1) % worldOrder.size();
+                build();
+                return true;
+            }
+            if (clickType == ClickType.LEFT) {
+                toggleSelectedWorld();
+                build();
+                return true;
+            }
+
         }
         if (slot == 12) {
             startChatInput(player, ChatInputType.COORDINATES, (value, p) -> {
@@ -328,30 +440,6 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         }
     }
 
-
-    private void updateDimensions(Object input) {
-        String config = (String) input;
-        String[] parts = config.split(":");
-        String o = parts[0].toLowerCase();
-        String n = parts[1].toLowerCase();
-        String e = parts[2].toLowerCase();
-        if (o.equals("true") || o.equals("t")) {
-            tempConfig.getDimensions().add(World.Environment.NORMAL);
-        } else {
-            tempConfig.getDimensions().remove(World.Environment.NORMAL);
-        }
-        if (n.equals("true") || n.equals("t")) {
-            tempConfig.getDimensions().add(World.Environment.NETHER);
-        } else {
-            tempConfig.getDimensions().remove(World.Environment.NETHER);
-        }
-        if (e.equals("true") || e.equals("t")) {
-            tempConfig.getDimensions().add(World.Environment.THE_END);
-        } else {
-            tempConfig.getDimensions().remove(World.Environment.THE_END);
-        }
-    }
-
     private void updateTimes(Object input) {
         String config = (String) input;
         String[] parts = config.split(":");
@@ -389,6 +477,7 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         if (configManager.isSaveInProgress()) {
             return;
         }
+        pruneUnknownWorldsBeforeSave();
         if (selectedMobId != null) {
             mob = configManager.getPowerMob(selectedMobId);
         } else {

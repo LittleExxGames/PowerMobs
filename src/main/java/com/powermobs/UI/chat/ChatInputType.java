@@ -155,16 +155,6 @@ public enum ChatInputType {
                     "\n" + ChatColor.YELLOW + "Weight only applies when using level ranges."
     ),
 
-    DIMENSIONS(
-            "Dimensions",
-            ChatColor.GRAY + "Set what dimensions to include or exclude the mob from spawning in." +
-                    "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <T/F> <T/F> <T/F>'" +
-                    "\n" + ChatColor.YELLOW + "1 - OVERWORLD " +
-                    "\n" + ChatColor.YELLOW + "2 - NETHER " +
-                    "\n" + ChatColor.YELLOW + "3 - THE_END " +
-                    "\n" + ChatColor.YELLOW + "• Example: 'set true false true"
-    ),
-
     TIMES(
             "Times",
             ChatColor.GRAY + "Set what times to include or exclude the mob from spawning at." +
