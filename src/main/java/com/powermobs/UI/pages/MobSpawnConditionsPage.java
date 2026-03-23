@@ -4,10 +4,7 @@ import com.powermobs.UI.GUIManager;
 import com.powermobs.UI.chat.ChatInputType;
 import com.powermobs.UI.framework.AbstractGUIPage;
 import com.powermobs.UI.framework.GUIPageManager;
-import com.powermobs.config.BiomeGroupManager;
-import com.powermobs.config.IPowerMobConfig;
-import com.powermobs.config.PowerManager;
-import com.powermobs.config.SpawnCondition;
+import com.powermobs.config.*;
 import com.powermobs.utils.WorldCatalog;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -33,6 +30,8 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
     private Set<String> knownWorldNames = new LinkedHashSet<>(); // NEW: Bukkit + Multiverse known worlds
     private int selectedWorldIndex = 0;
 
+    private int selectedBoundingBoxIndex = 0;
+    private boolean delBoundingBox = false;
 
     public MobSpawnConditionsPage(GUIPageManager pageManager, GUIManager guiManager) {
         super(pageManager, guiManager, INVENTORY_SIZE, ChatColor.DARK_PURPLE + "Mob Spawn Conditions");
@@ -51,7 +50,10 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         }
         if (tempConfig == null) {
             tempConfig = new SpawnCondition(mob.getSpawnCondition());
+            selectedWorldIndex = 0;
+            selectedBoundingBoxIndex = 0;
         }
+        boolean hasChanges = !tempConfig.toConfigMap().equals(mob.getSpawnCondition().toConfigMap());
 
         ItemStack spawnChanceDisplay = createGuiItem(Material.RECOVERY_COMPASS,
                 ChatColor.WHITE + "Spawn Chance",
@@ -98,32 +100,76 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         );
         inventory.setItem(6, despawnDisplay);
 
-        ItemStack xDisplay = createGuiItem(
-                Material.COMPASS,
-                ChatColor.YELLOW + "X axis",
-                ChatColor.GRAY + "Current x spawnable range:",
-                ChatColor.GREEN + " " + tempConfig.getMinX() + " - " + tempConfig.getMaxX(),
-                ChatColor.GRAY + "Click to modify"
-        );
-        inventory.setItem(12, xDisplay);
+        List<BoundingBox> boxes = tempConfig.getBoundingBoxes();
+        List<String> boundingBoxes = new ArrayList<>();
 
-        ItemStack yDisplay = createGuiItem(
-                Material.COMPASS,
-                ChatColor.YELLOW + "Y axis",
-                ChatColor.GRAY + "Current y spawnable range:",
-                ChatColor.GREEN + " " + tempConfig.getMinY() + " - " + tempConfig.getMaxY(),
-                ChatColor.GRAY + "Click to modify"
-        );
-        inventory.setItem(13, yDisplay);
+        if (boxes == null || boxes.isEmpty()) {
+            tempConfig.setBoundingBoxes(new ArrayList<>());
+            tempConfig.getBoundingBoxes().add(new BoundingBox());
+            boxes = tempConfig.getBoundingBoxes();
+            pageManager.getPlugin().debug("Unable to find bounding boxes. Creating default.", "ui");
+        }
+            if (selectedBoundingBoxIndex < 0) {
+                selectedBoundingBoxIndex = 0;
+            }
+        if (selectedBoundingBoxIndex >= boxes.size()) {
+            selectedBoundingBoxIndex = boxes.size() - 1;
+        }
 
-        ItemStack zDisplay = createGuiItem(
+        int visibleCount = Math.min(5, boxes.size());
+        int startIndex = (boxes.size() <= visibleCount) ? 0 : selectedBoundingBoxIndex - 2;
+        if (startIndex < 0) {
+            startIndex = 0;
+        }
+        if (startIndex > boxes.size() - visibleCount) {
+            startIndex = boxes.size() - visibleCount;
+        }
+
+        for (int i = 0; i < visibleCount; i++) {
+            int index = startIndex + i;
+            BoundingBox box = boxes.get(index);
+
+            List<String> boxLines = new ArrayList<>();
+            boxLines.add(ChatColor.GRAY + "X: " + ChatColor.WHITE + box.getXPair());
+            boxLines.add(ChatColor.GRAY + "Y: " + ChatColor.WHITE + box.getYPair());
+            boxLines.add(ChatColor.GRAY + "Z: " + ChatColor.WHITE + box.getZPair());
+
+            if (index == selectedBoundingBoxIndex) {
+                boundingBoxes.add(ChatColor.YELLOW + "► " + ChatColor.GOLD + "Bounding Box " + (index + 1) + ChatColor.YELLOW + " ◄");
+                boundingBoxes.addAll(boxLines);
+            } else {
+                boundingBoxes.add(ChatColor.BLUE + "Bounding Box " + (index + 1));
+                boundingBoxes.addAll(boxLines);
+            }
+
+            if (i != visibleCount - 1) {
+                boundingBoxes.add(ChatColor.DARK_GRAY + " ");
+            }
+        }
+
+        if (boxes.size() > visibleCount) {
+            boundingBoxes.add(ChatColor.GRAY + "Showing " + visibleCount + " of " + boxes.size());
+        }
+
+        if (delBoundingBox) {
+            boundingBoxes.add(ChatColor.RED + "DELETE?");
+        }
+
+        boundingBoxes.add(ChatColor.GRAY + "Left click: delete");
+        boundingBoxes.add(ChatColor.GRAY + "Right click: cycle selection");
+
+        ItemStack boxDisplay = createGuiItem(
                 Material.COMPASS,
-                ChatColor.YELLOW + "Z axis",
-                ChatColor.GRAY + "Current z spawnable range:",
-                ChatColor.GREEN + " " + tempConfig.getMinZ() + " - " + tempConfig.getMaxZ(),
-                ChatColor.GRAY + "Click to modify"
+                ChatColor.YELLOW + "--Bounding Boxes--",
+                boundingBoxes
         );
-        inventory.setItem(14, zDisplay);
+        inventory.setItem(13, boxDisplay);
+
+        ItemStack addBoxDisplay = createGuiItem(
+                Material.LODESTONE,
+                ChatColor.GREEN + "Click to add a bounding box"
+        );
+        inventory.setItem(22, addBoxDisplay);
 
         buildWorldSelectorItem();
 
@@ -143,9 +189,6 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         // Display biome groups
         displayBiomeGroups(tempConfig);
 
-        // Back button
-        addBackButton(53, ChatColor.RED + "Back to Mob Editor");
-
         // Save button
         ItemStack saveButton = createGuiItem(
                 Material.EMERALD,
@@ -154,6 +197,8 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         );
         inventory.setItem(45, saveButton);
 
+        // Back button
+        addBackButton(53, ChatColor.RED + "Back to Mob List", hasChanges);
     }
 
     private void buildWorldSelectorItem() {
@@ -360,30 +405,38 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
             }
 
         }
-        if (slot == 12) {
-            startChatInput(player, ChatInputType.COORDINATES, (value, p) -> {
-                updateCoordinates(value, "x");
-                pageManager.navigateTo("mob_spawn_conditions", false, p);
-            });
-        }
         if (slot == 13) {
-            startChatInput(player, ChatInputType.COORDINATES, (value, p) -> {
-                updateCoordinates(value, "y");
-                pageManager.navigateTo("mob_spawn_conditions", false, p);
-            });
+            if (clickType == ClickType.RIGHT) {
+                selectedBoundingBoxIndex++;
+                if (selectedBoundingBoxIndex >= tempConfig.getBoundingBoxes().size()) {
+                    selectedBoundingBoxIndex = 0;
+                }
+                delBoundingBox = false;            }
+            if (clickType == ClickType.LEFT) {
+                if (delBoundingBox) {
+                    tempConfig.getBoundingBoxes().remove(selectedBoundingBoxIndex);
+                    selectedBoundingBoxIndex = 0;
+                }
+                delBoundingBox = !delBoundingBox;
+            }
+            build();
+            return true;
         }
-        if (slot == 14) {
-            startChatInput(player, ChatInputType.COORDINATES, (value, p) -> {
-                updateCoordinates(value, "z");
-                pageManager.navigateTo("mob_spawn_conditions", false, p);
-            });
-        }
+
         if (slot == 16) {
             startChatInput(player, ChatInputType.TIMES, (value, p) -> {
                 updateTimes(value);
                 pageManager.navigateTo("mob_spawn_conditions", false, p);
             });
         }
+
+        if (slot == 22) {
+            startChatInput(player, ChatInputType.COORDINATES, (value, p) -> {
+                updateCoordinates(value);
+                pageManager.navigateTo("mob_spawn_conditions", false, p);
+            });
+        }
+
         // Handle biome group toggles (slots 28-44)
         if (slot >= 28 && slot < 45) {
             ItemStack clickedItem = inventory.getItem(slot);
@@ -495,49 +548,45 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         pageManager.navigateBack(player);
     }
 
-    private void updateCoordinates(Object input, String axis) {
+    private void updateCoordinates(Object input) {
         String[] parts = ((String) input).split(":");
-        String min = parts[0];
-        String max = parts[1];
-        switch (axis) {
+        String[] x = parts[0].split(",");
+        String[] y = parts[1].split(",");
+        String[] z = parts[2].split(",");
+        int minX, maxX, minY, maxY, minZ, maxZ;
 
-            case "x":
-                if (min.equalsIgnoreCase("infinity")) {
-                    tempConfig.setMinX(Integer.MIN_VALUE);
-                } else {
-                    tempConfig.setMinX(Integer.parseInt(min));
-                }
-                if (max.equalsIgnoreCase("infinity")) {
-                    tempConfig.setMaxX(Integer.MAX_VALUE);
-                } else {
-                    tempConfig.setMaxX(Integer.parseInt(max));
-                }
-                break;
-            case "y":
-                if (min.equalsIgnoreCase("infinity")) {
-                    tempConfig.setMinY(Integer.MIN_VALUE);
-                } else {
-                    tempConfig.setMinY(Integer.parseInt(min));
-                }
-                if (max.equalsIgnoreCase("infinity")) {
-                    tempConfig.setMaxY(Integer.MAX_VALUE);
-                } else {
-                    tempConfig.setMaxY(Integer.parseInt(max));
-                }
-                break;
-            case "z":
-                if (min.equalsIgnoreCase("infinity")) {
-                    tempConfig.setMinZ(Integer.MIN_VALUE);
-                } else {
-                    tempConfig.setMinZ(Integer.parseInt(min));
-                }
-                if (max.equalsIgnoreCase("infinity")) {
-                    tempConfig.setMaxZ(Integer.MAX_VALUE);
-                } else {
-                    tempConfig.setMaxZ(Integer.parseInt(max));
-                }
-                break;
+        if (x[0].equalsIgnoreCase("infinity")) {
+            minX = Integer.MIN_VALUE;
+        } else {
+            minX = Integer.parseInt(x[0]);
         }
+        if (x[1].equalsIgnoreCase("infinity")) {
+            maxX = Integer.MAX_VALUE;
+        } else {
+            maxX = Integer.parseInt(x[1]);
+        }
+        if (y[0].equalsIgnoreCase("infinity")) {
+            minY = Integer.MIN_VALUE;
+        } else {
+            minY = Integer.parseInt(y[0]);
+        }
+        if (y[1].equalsIgnoreCase("infinity")) {
+            maxY = Integer.MAX_VALUE;
+        } else {
+            maxY = Integer.parseInt(y[1]);
+        }
+        if (z[0].equalsIgnoreCase("infinity")) {
+            minZ = Integer.MIN_VALUE;
+        } else {
+            minZ = Integer.parseInt(z[0]);
+        }
+        if (z[1].equalsIgnoreCase("infinity")) {
+            maxZ = Integer.MAX_VALUE;
+        } else {
+            maxZ = Integer.parseInt(z[1]);
+        }
+
+        tempConfig.getBoundingBoxes().add(new BoundingBox(minX, maxX, minY, maxY, minZ, maxZ));
     }
 
 }

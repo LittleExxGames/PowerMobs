@@ -166,7 +166,7 @@ public enum ChatInputType {
     COORDINATES(
             "Coordinates",
             ChatColor.GRAY + "Set the range for the mob to spawn in." +
-                    "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <min> <max>'" + ChatColor.YELLOW + " set the coordinate range" +
+                    "\n" + ChatColor.YELLOW + "• Use " + ChatColor.GREEN + "'set <minX>-<maxX> <minY>-<maxY> <minZ>-<maxZ>'" + ChatColor.YELLOW + " set the coordinate range" +
                     "\n" + ChatColor.YELLOW + "• Use 'infinity' to allow anything past the other value"
     ),
 

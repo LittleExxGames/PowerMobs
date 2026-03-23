@@ -2,13 +2,12 @@
 # PowerMobs Configuration
 # ======================
 #
-# This configuration file controls all aspects of the PowerMobs plugin.
+# This configuration file controls many core aspects of the PowerMobs plugin.
 # Random Mob configuration is also editable in the in game UI.
-# General settings are only changeable here.
 
 # General settings
 settings:
-  # Enable debug mode for additional console output
+  # Enable debug mode for additional console output.
   debug: false
   debugMobSpawning: true
   debugUI: true
@@ -19,20 +18,26 @@ settings:
   debugSpawnBlockers: true
   debugSaveAndLoad: true
   
-  # Global chance for a mob to be replaced with a power mob when it spawns naturally
+  # Global chance for a mob to be replaced with a power mob when it spawns naturally.
   # 0.0 = 0%, 1.0 = 100%
   spawn-chance: 0.01
   
-  # Whether to announce when a power mob spawns (only to players with powermobs.announce permission)
+  # Whether to announce when a power mob spawns (only to players with powermobs.announce permission).
   spawn-announcements: true
+
+  # Message to display to nearby players of a power mob. Supports color codes. Use %mob% to display the mob's name.
+  spawn-announcement-message: "&c[PowerMobs] &6A &r%mob% &6has spawned nearby!"
+
+  # How close a player must be in blocks to a power mob to receive the spawn announcement.
+  spawn-announcement-range: 50
   
-  # Whether to add a visual effect when a power mob spawns
+  # Whether to add a visual effect when a power mob spawns.
   spawn-effect: true
   
-  # Whether power mobs should have their name displayed
+  # Whether power mobs should have their name displayed.
   show-names: true
 
-  # Spawn delay settings
+  # Spawn delay settings.
   spawn-timers:
     enabled: true
     location-based: false

@@ -161,14 +161,13 @@
 #                               #
 #                               # Behavior:
 #                               # - If 'worlds' is missing and 'dimensions' is present, the plugin converts
-#                               #   dimensions -> worlds at load time using each world's defined dimention.
+#                               #   dimensions -> worlds at load time using each world's defined dimension.
 #                               # - When you save spawn-conditions in-game, the UI writes 'worlds' and
 #                               #   'dimensions' is removed.
 #
-#   min-x, max-x:               # Number (OPTIONAL) - Allowed X distance from world spawn
-#   min-z, max-z:               # Number (OPTIONAL) - Allowed Z distance from world spawn
-#   min-y, max-y:               # Number (OPTIONAL) - Allowed Y range
-#                               # Use very large values if you want “no limit” in config.
+#   bounding-boxes:             # List[String] (OPTIONAL) - Allowed bounding boxes
+#                               # Example: 500-2000 40-70 500-2000 or infinite-infinite infinite-infinite infinite-infinite
+#                               # Empty or missing = infinite
 #
 #   biomes:                     # List[String] (OPTIONAL) - Allowed biomes
 #                               # If present and non-empty, mob only spawns in these biomes.
@@ -248,12 +247,8 @@ power-mobs:
       despawn-time: '1800'
       dimensions:
         - OVERWORLD
-      min-x: 500
-      max-x: 2000
-      min-z: 500
-      max-z: 2000
-      min-y: 40
-      max-y: 70
+      bounding-boxes:
+        - 500-2000 40-70 500-2000
       biome-groups:
         Mountain:
           - WINDSWEPT_HILLS
@@ -427,12 +422,8 @@ power-mobs:
       despawn-time: '1800'
       dimensions:
         - OVERWORLD
-      min-x: infinite
-      max-x: infinite
-      min-z: infinite
-      max-z: infinite
-      min-y: infinite
-      max-y: infinite
+      bounding-boxes:
+        - infinite-infinite infinite-infinite infinite-infinite
       biome-groups:
         Mountain:
           - WINDSWEPT_HILLS
@@ -582,12 +573,8 @@ power-mobs:
         - NETHER
         - THE_END
         - CUSTOM
-      min-x: 4000
-      max-x: infinite
-      min-z: infinite
-      max-z: infinite
-      min-y: infinite
-      max-y: infinite
+      bounding-boxes:
+        - 4000-infinite infinite-infinite infinite-infinite
       biome-groups:
         Mountain:
           - WINDSWEPT_HILLS
@@ -795,12 +782,8 @@ power-mobs:
       despawn-time: '1800'
       dimensions:
         - OVERWORLD
-      min-x: infinite
-      max-x: infinite
-      min-z: infinite
-      max-z: infinite
-      min-y: 45
-      max-y: 128
+      bounding-boxes:
+        - infinite-infinite 45-128 infinite-infinite
       biome-groups:
         Mountain:
           - WINDSWEPT_HILLS

@@ -26,15 +26,9 @@ public class SpawnCondition {
     private boolean replaceTypeOnly;
     private int minDespawnTime;
     private int maxDespawnTime;
-    //private Set<World.Environment> dimensions;
 
     private Set<String> worlds;
-    private int minX;
-    private int maxX;
-    private int minZ;
-    private int maxZ;
-    private int minY;
-    private int maxY;
+    private List<BoundingBox> boundingBoxes;
     private Set<TimeCondition> timeConditions;
     private BiomeGroupManager biomeGroupManager;
 
@@ -51,12 +45,8 @@ public class SpawnCondition {
         this.maxDespawnTime = 1800;
         this.replaceTypeOnly = true;
         this.worlds = null;
-        this.minX = Integer.MIN_VALUE;
-        this.maxX = Integer.MAX_VALUE;
-        this.minZ = Integer.MIN_VALUE;
-        this.maxZ = Integer.MAX_VALUE;
-        this.minY = Integer.MIN_VALUE;
-        this.maxY = Integer.MAX_VALUE;
+        boundingBoxes = new ArrayList<>();
+        boundingBoxes.add(new BoundingBox());
         this.timeConditions = EnumSet.allOf(TimeCondition.class);
         this.biomeGroupManager = new BiomeGroupManager();
     }
@@ -71,12 +61,7 @@ public class SpawnCondition {
         this.minDespawnTime = copy.getMinDespawnTime();
         this.maxDespawnTime = copy.getMaxDespawnTime();
         this.worlds = (copy.getWorlds() == null) ? null : new LinkedHashSet<>(copy.getWorlds());
-        this.minX = copy.getMinX();
-        this.maxX = copy.getMaxX();
-        this.minY = copy.getMinY();
-        this.maxY = copy.getMaxY();
-        this.minZ = copy.getMinZ();
-        this.maxZ = copy.getMaxZ();
+        this.boundingBoxes = new ArrayList<>(copy.getBoundingBoxes());
         this.timeConditions = new LinkedHashSet<>(copy.getTimeConditions());
         this.biomeGroupManager = new BiomeGroupManager(copy.getBiomeGroupManager());
 
@@ -129,16 +114,31 @@ public class SpawnCondition {
         } else {
             this.worlds = null;
         }
+        boolean hasOldFormat =
+                        section.getKeys(false).contains("min-x") ||
+                        section.getKeys(false).contains("max-x") ||
+                        section.getKeys(false).contains("min-y") ||
+                        section.getKeys(false).contains("max-y") ||
+                        section.getKeys(false).contains("min-z") ||
+                        section.getKeys(false).contains("max-z");
+        if (!hasOldFormat) {
+            List<String> bb = section.getStringList("bounding-boxes");
+            boundingBoxes = new ArrayList<>();
+            for (String val : bb) {
+                boundingBoxes.add(new BoundingBox(val));
+            }
+        } else {
+            int minX = section.getInt("min-x", Integer.MIN_VALUE);
+            int maxX = section.getInt("max-x", Integer.MAX_VALUE);
+            int minY = section.getInt("min-y", Integer.MIN_VALUE);
+            int maxY = section.getInt("max-y", Integer.MAX_VALUE);
+            int minZ = section.getInt("min-z", Integer.MIN_VALUE);
+            int maxZ = section.getInt("max-z", Integer.MAX_VALUE);
+            boundingBoxes = new ArrayList<>();
+            boundingBoxes.add(new BoundingBox(minX, maxX, minY, maxY, minZ, maxZ));
+        }
 
-        // X distance
-        this.minX = section.getInt("min-x", Integer.MIN_VALUE);
-        this.maxX = section.getInt("max-x", Integer.MAX_VALUE);
-        // Z distance
-        this.minZ = section.getInt("min-z", Integer.MIN_VALUE);
-        this.maxZ = section.getInt("max-z", Integer.MAX_VALUE);
-        // Y level range
-        this.minY = section.getInt("min-y", Integer.MIN_VALUE);
-        this.maxY = section.getInt("max-y", Integer.MAX_VALUE);
+
 
 
         // Load custom biome group configurations if present
@@ -200,38 +200,16 @@ public class SpawnCondition {
             map.put("worlds", new ArrayList<>(this.worlds));
         }
 
+        List<String> locations = new ArrayList<>();
+        if (this.boundingBoxes != null && !this.boundingBoxes.isEmpty()) {
+            for (BoundingBox bb : this.boundingBoxes) {
+                locations.add(bb.getBoxString());
+            }
+        } else {
+            locations.add(new BoundingBox().getBoxString());
+        }
+        map.put("bounding-boxes", locations);
 
-        // Add coordinate boundaries only if they're not infinite
-        if (this.minX != Integer.MIN_VALUE) {
-            map.put("min-x", this.minX);
-        } else {
-            map.put("min-x", "infinite");
-        }
-        if (this.maxX != Integer.MAX_VALUE) {
-            map.put("max-x", this.maxX);
-        } else {
-            map.put("max-x", "infinite");
-        }
-        if (this.minZ != Integer.MIN_VALUE) {
-            map.put("min-z", this.minZ);
-        } else {
-            map.put("min-z", "infinite");
-        }
-        if (this.maxZ != Integer.MAX_VALUE) {
-            map.put("max-z", this.maxZ);
-        } else {
-            map.put("max-z", "infinite");
-        }
-        if (this.minY != Integer.MIN_VALUE) {
-            map.put("min-y", this.minY);
-        } else {
-            map.put("min-y", "infinite");
-        }
-        if (this.maxY != Integer.MAX_VALUE) {
-            map.put("max-y", this.maxY);
-        } else {
-            map.put("max-y", "infinite");
-        }
 
         // Save custom biome group configurations
         Map<String, Object> biomeGroupConfig = this.biomeGroupManager.toConfigMap();
@@ -278,12 +256,16 @@ public class SpawnCondition {
         int z = location.getBlockZ();
         int y = location.getBlockY();
 
-        if ((x < this.minX || x > this.maxX) ||
-                (z < this.minZ || z > this.maxZ) ||
-                (y < this.minY || y > this.maxY)) {
+        boolean validPos = false;
+        for (BoundingBox bb : this.boundingBoxes) {
+            if (bb.containsPosition(x, y, z)) {
+                validPos = true;
+                break;
+            }
+        }
+        if (!validPos){
             plugin.debug(String.format("FAILED spawn condition: Spawn range check failed. Current: %d x, %d y, %d z \n " +
-                            "Needed: %d - %d x, %d - %d y, %d - %d z",
-                    x, y, z, this.minX, this.maxX, this.minZ, this.maxZ, this.minY, this.maxY), "mob_spawning");
+                            "Failed %d ranges.", x, y, z, boundingBoxes.size()), "mob_spawning");
             return false;
         }
 

@@ -125,9 +125,10 @@ public class MobSpawnListener implements Listener {
         if (this.plugin.getConfigManager().isSpawnAnnouncements()) {
             for (Player player : location.getWorld().getPlayers()) {
                 if (player.hasPermission("powermobs.announce") &&
-                        player.getLocation().distance(location) <= 50) {
-                    player.sendMessage(ChatColor.RED + "[PowerMobs] " + ChatColor.GOLD +
-                            "A " + powerMob.getEntity().getCustomName() + ChatColor.GOLD + " has spawned nearby!");
+                        player.getLocation().distance(location) <= this.plugin.getConfigManager().getSpawnAnnouncementRange()) {
+                    String message = this.plugin.getConfigManager().getSpawnAnnouncementMessage();
+                    message = ChatColor.translateAlternateColorCodes('&', message.replace("%mob%", powerMob.getEntity().getName()));
+                    player.sendMessage(message);
                 }
             }
         }

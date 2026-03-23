@@ -49,7 +49,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
 
     @Override
     public void apply(PowerMob powerMob) {
-        // This ability is event-based, so we don't need to do anything here
+        // This ability is event-based, not needed
     }
 
     @Override
@@ -77,7 +77,6 @@ public class TeleportAbility extends AbstractAbility implements Listener {
             return;
         }
 
-        // Check if the mob has this ability
         boolean hasAbility = powerMob.getAbilities().stream()
                 .anyMatch(ability -> ability.getId().equals(this.id));
 
@@ -248,7 +247,6 @@ public class TeleportAbility extends AbstractAbility implements Listener {
             ));
         }
 
-        // Try candidates in order
         for (PotentialLocation candidate : candidates) {
             Location potential = new Location(current.getWorld(), candidate.x, candidate.y, candidate.z);
             Location safe = findSafeYWithinRadius(current, potential, maxAwayDistance);
@@ -288,7 +286,6 @@ public class TeleportAbility extends AbstractAbility implements Listener {
             ));
         }
 
-        // Shuffle for randomness but with better coverage
         Collections.shuffle(candidates, this.random);
 
         // Try first 10 shuffled candidates
@@ -315,18 +312,14 @@ public class TeleportAbility extends AbstractAbility implements Listener {
     private void performTeleport(LivingEntity entity, Location target, UUID mobUuid) {
         Location current = entity.getLocation();
 
-        // Play effects at the original location
         current.getWorld().spawnParticle(Particle.PORTAL, current, 30, 0.5, 1.0, 0.5, 0.1);
         current.getWorld().playSound(current, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
 
-        // Teleport
         entity.teleport(target);
 
-        // Play effects at the target location
         target.getWorld().spawnParticle(Particle.PORTAL, target, 30, 0.5, 1.0, 0.5, 0.1);
         target.getWorld().playSound(target, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
 
-        // Set cooldown
         this.cooldowns.put(mobUuid, System.currentTimeMillis());
     }
 
@@ -450,7 +443,7 @@ public class TeleportAbility extends AbstractAbility implements Listener {
                 "max-away-distance", AbilityConfigField.integer("max-away-distance", this.defaultMaxAwayDistance, "Max away distance the teleport can go when struck"),
                 "max-to-distance", AbilityConfigField.integer("max-to-distance", this.defaultMaxToDistance, "Min to distance the teleport can go when struck"),
                 "cooldown", AbilityConfigField.integer("cooldown", this.defaultCooldown, "Cooldown for teleportation upon receiving damage"),
-                "inactivity-time",AbilityConfigField.integer("inactivity-time", this.defaultInactivityTime, "Time until teleporting to last attacker when not attacked"));
+                "inactivity-time", AbilityConfigField.integer("inactivity-time", this.defaultInactivityTime, "Time until teleporting to last attacker when not attacked"));
     }
 
     /**

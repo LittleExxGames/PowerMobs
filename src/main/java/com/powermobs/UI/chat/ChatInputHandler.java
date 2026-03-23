@@ -453,19 +453,37 @@ public class ChatInputHandler implements Listener {
     }
 
     private ChatInputResult validateDistance(String input) {
-        String pattern = "^set\\s+(-?\\d+|infinity)\\s+(-?\\d+|infinity)$";
+        String pattern = "^set\\s+(-?\\d+|infinity)-(-?\\d+|infinity)\\s+(-?\\d+|infinity)-(-?\\d+|infinity)\\s+(-?\\d+|infinity)-(-?\\d+|infinity)$";
         Pattern regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
         Matcher matcher = regex.matcher(input);
-        if (matcher.matches()) {
-            if (matcher.group(1).equalsIgnoreCase("infinity") || matcher.group(2).equalsIgnoreCase("infinity")) {
-                return new ChatInputResult(true, matcher.group(1) + ":" + matcher.group(2), null);
-            } else if (Integer.parseInt(matcher.group(1)) > Integer.parseInt(matcher.group(2))) {
-                return new ChatInputResult(false, null, "Min distance cannot be greater than max distance");
-            }
-            return new ChatInputResult(true, matcher.group(1) + ":" + matcher.group(2), null);
-        } else {
-            return new ChatInputResult(false, null, "Invalid format. Use 'set <min> <max>'");
+        if (!matcher.matches()) {
+            return new ChatInputResult(false, null, "Invalid format. Use: set <minX>-<maxX> <minY>-<maxY> <minZ>-<maxZ>");
         }
+        String messageStack = "";
+        if (matcher.group(1).equalsIgnoreCase("infinity") || matcher.group(2).equalsIgnoreCase("infinity")) {
+            messageStack += matcher.group(1) + "," + matcher.group(2);
+        } else if (Integer.parseInt(matcher.group(1)) > Integer.parseInt(matcher.group(2))) {
+            return new ChatInputResult(false, null, "Min X distance cannot be greater than max X distance");
+        } else {
+            messageStack += matcher.group(1) + "," + matcher.group(2);
+        }
+        messageStack += ":";
+        if (matcher.group(3).equalsIgnoreCase("infinity") || matcher.group(4).equalsIgnoreCase("infinity")) {
+            messageStack += matcher.group(3) + "," + matcher.group(4);
+        } else if (Integer.parseInt(matcher.group(3)) > Integer.parseInt(matcher.group(4))) {
+            return new ChatInputResult(false, null, "Min Y distance cannot be greater than max Y distance");
+        } else {
+            messageStack += matcher.group(3) + "," + matcher.group(4);
+        }
+        messageStack += ":";
+        if (matcher.group(5).equalsIgnoreCase("infinity") || matcher.group(6).equalsIgnoreCase("infinity")) {
+            messageStack += matcher.group(5) + "," + matcher.group(6);
+        } else if (Integer.parseInt(matcher.group(5)) > Integer.parseInt(matcher.group(6))) {
+            return new ChatInputResult(false, null, "Min Z distance cannot be greater than max Z distance");
+        } else {
+            messageStack += matcher.group(5) + "," + matcher.group(6);
+        }
+        return new ChatInputResult(true, messageStack, null);
     }
 
     private ChatInputResult validateBooleans(String input, int count) {

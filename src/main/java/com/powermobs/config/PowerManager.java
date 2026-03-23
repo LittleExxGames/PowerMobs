@@ -48,6 +48,10 @@ public class PowerManager {
     @Getter
     private boolean spawnAnnouncements;
     @Getter
+    private String spawnAnnouncementMessage;
+    @Getter
+    private int spawnAnnouncementRange;
+    @Getter
     private boolean spawnEffect;
     @Getter
     private boolean showNames;
@@ -119,6 +123,8 @@ public class PowerManager {
             this.debugSaveAndLoad = settings.getBoolean("debug-save-and-load", true);
             this.spawnChance = settings.getDouble("spawn-chance", 0.1);
             this.spawnAnnouncements = settings.getBoolean("spawn-announcements", true);
+            this.spawnAnnouncementMessage = settings.getString("spawn-announcement-message", "&c[PowerMobs] &6A &r%mob% &6has spawned nearby!");
+            this.spawnAnnouncementRange = settings.getInt("spawn-announcement-range", 50);
             this.spawnEffect = settings.getBoolean("spawn-effect", true);
             this.showNames = settings.getBoolean("show-names", true);
 

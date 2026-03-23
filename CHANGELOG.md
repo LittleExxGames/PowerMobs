@@ -1,3 +1,10 @@
+V1.2.2 - 3/22/2026
+- Added customization for the announcement message that is sent when a mob spawns. (Found in config.yml)
+- Changed spawn ranges to be bounding boxes. Now you can define multiple ranges for the mob to spawn in!
+- Added a new ability: "Switcheroo" - This ability allows a mob to switch places with an attacking or nearby player.
+
+Configs abilitiesconfig.yml, mobsconfig.yml, and config.yml have been updated to reflect these changes upon regeneration. 
+
 V1.2.1 - 2/28/2026
 - Fixed a spawn delay bug that made spawn delay calculations using the wrong values.
 - Replaced dimensions settings with world settings so mobs can now specify which world they spawn in.(including dimensions)

@@ -106,3 +106,14 @@ abilities:
     power: 2
     # Cooldown in seconds
     cooldown: 4
+
+  switcheroo:
+    # Chance to trigger on hit (0.0-1.0)
+    chance: 0.3
+    # Max distance in blocks that the teleportation can take place
+    max-distance: 10
+    # Cooldown in seconds
+    cooldown: 5
+    # Only trigger if the mob is damaged
+    only-if-damaged: false
+

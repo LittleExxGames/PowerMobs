@@ -24,6 +24,7 @@ public class AbilityManager {
         // Register built-in abilities
         registerAbility(new FireAuraAbility(this.plugin));
         registerAbility(new LightningStrikeAbility(this.plugin));
+        registerAbility(new SwitcherooAbility(this.plugin));
         registerAbility(new TeleportAbility(this.plugin));
         registerAbility(new LeapAbility(this.plugin));
         registerAbility(new SummonMinionsAbility(this.plugin));
