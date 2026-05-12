@@ -1,6 +1,8 @@
 package com.powermobs.mobs.equipment;
 
 import com.powermobs.PowerMobsPlugin;
+import com.powermobs.config.ParticleEffectConfig;
+import com.powermobs.config.SoundEffectConfig;
 import com.powermobs.mobs.equipment.items.Shape;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.*;
@@ -494,29 +496,36 @@ public class ItemEffectProcessor {
         if (location == null || location.getWorld() == null) return;
 
         final Particle particle;
+        if (effect.getParticleEffectConfig() == null) {
+            plugin.getLogger().warning("[ItemEffects] Invalid particle config for " +
+                    effect.getItemId() + ":" + effect.getEffectId());
+            return;
+        }
+        ParticleEffectConfig config = effect.getParticleEffectConfig();
         try {
-            particle = Particle.valueOf(effect.getParticleType().toUpperCase());
+
+            particle = Particle.valueOf(config.getParticleType().toUpperCase());
         } catch (Exception e) {
-            plugin.getLogger().warning("[ItemEffects] Invalid particle type '" + effect.getParticleType() + "' for " +
+            plugin.getLogger().warning("[ItemEffects] Invalid particle type '" + config.getParticleType() + "' for " +
                     effect.getItemId() + ":" + effect.getEffectId());
             return;
         }
 
-        final int perTickCount = effect.getParticleCount();
+        final int perTickCount = config.getParticleCount();
         if (perTickCount <= 0) return;
 
-        final double radius = effect.getParticleRadius();
-        final Shape shape = effect.getParticleShape();
+        final double radius = config.getParticleRadius();
+        final Shape shape = config.getParticleShape();
 
         Runnable burst = () -> spawnParticleBurst(location, particle, perTickCount, radius, shape);
 
-        int durationSeconds = effect.getParticleDurationSeconds();
+        int durationSeconds = config.getParticleDurationSeconds();
         if (durationSeconds <= 0) {
             burst.run();
             return;
         }
 
-        int interval = effect.getParticleIntervalTicks();
+        int interval = config.getParticleIntervalTicks();
         int runs = Math.max(1, (durationSeconds * 20) / interval);
 
         final int[] remaining = { runs };
@@ -584,12 +593,17 @@ public class ItemEffectProcessor {
 
     private void playSound(ItemEffect effect, Location location) {
         if (location.getWorld() == null) return;
-
+        if (effect.getSoundEffectConfig() == null) {
+            plugin.getLogger().warning("[ItemEffects] Invalid sound type for " +
+                    effect.getItemId() + ":" + effect.getEffectId());
+            return;
+        }
+        SoundEffectConfig config = effect.getSoundEffectConfig();
         try {
-            Sound sound = Sound.valueOf(effect.getSoundType().toUpperCase());
-            location.getWorld().playSound(location, sound, effect.getSoundVolume(), effect.getSoundPitch());
+            Sound sound = Sound.valueOf(config.getSoundType().toUpperCase());
+            location.getWorld().playSound(location, sound, (float) config.getSoundVolume(), (float) config.getSoundPitch());
         } catch (Exception e) {
-            plugin.getLogger().warning("[ItemEffects] Invalid sound type '" + effect.getSoundType() + "' for " +
+            plugin.getLogger().warning("[ItemEffects] Invalid sound type '" + config.getSoundType() + "' for " +
                     effect.getItemId() + ":" + effect.getEffectId());
         }
     }

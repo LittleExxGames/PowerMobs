@@ -2,7 +2,7 @@ package com.powermobs.events;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
-import com.powermobs.mobs.timing.SpawnContext;
+import com.powermobs.mobs.SpawnContext;
 import com.powermobs.utils.HostileEntityTypes;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;

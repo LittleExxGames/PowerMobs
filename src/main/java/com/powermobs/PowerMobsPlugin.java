@@ -5,6 +5,7 @@ import com.powermobs.commands.PowerMobCommand;
 import com.powermobs.config.PowerManager;
 import com.powermobs.config.PowerMobDropHandler;
 import com.powermobs.config.SpawnBlockerManager;
+import com.powermobs.config.SpawnKeyManager;
 import com.powermobs.events.*;
 import com.powermobs.mobs.PowerMobManager;
 import com.powermobs.mobs.abilities.AbilityManager;
@@ -61,6 +62,9 @@ public class PowerMobsPlugin extends JavaPlugin {
     @Getter
     private SpawnBlockerManager spawnBlockerManager;
 
+    @Getter
+    private SpawnKeyManager spawnKeyManager;
+
 
     @Override
     public void onEnable() {
@@ -75,6 +79,7 @@ public class PowerMobsPlugin extends JavaPlugin {
         // Initialize managers
         this.abilityManager = new AbilityManager(this);
         this.spawnBlockerManager = new SpawnBlockerManager(this);
+        this.spawnKeyManager = new SpawnKeyManager(this);
         this.equipmentManager = new EquipmentManager(this);
         this.itemEffectManager = new CustomItemEffectManager(this);
         this.itemEffectProcessor = new ItemEffectProcessor(this);
@@ -89,6 +94,7 @@ public class PowerMobsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ConfigGUIListener(this), this);
         getServer().getPluginManager().registerEvents(new ItemEffectListener(this), this);
         getServer().getPluginManager().registerEvents(new SpawnBlockerListener(this), this);
+        getServer().getPluginManager().registerEvents(new SpawnKeyListener(this), this);
 
 
         // Register commands
@@ -100,6 +106,7 @@ public class PowerMobsPlugin extends JavaPlugin {
         // Load abilities and equipment
         this.abilityManager.loadAbilities();
         this.spawnBlockerManager.loadBlockers();
+        this.spawnKeyManager.loadKeys();
         this.equipmentManager.loadEquipment();
 
         // Start cleanup task AFTER everything is loaded

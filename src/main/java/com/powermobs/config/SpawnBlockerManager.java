@@ -28,7 +28,7 @@ public class SpawnBlockerManager {
     private final NamespacedKey chunkBlockersKey;
     // Cache for active spawn blockers - maps world name to chunk coordinates to blocker configs
     private final Map<String, Map<ChunkCoord, Set<SpawnBlockerData>>> activeBlockers;
-    // Configuration cache
+
     private final Map<String, SpawnBlockerConfig> blockerConfigs;
     // Optimization: cache for recent chunk checks
     private final Map<String, Boolean> chunkCheckCache;
@@ -182,6 +182,15 @@ public class SpawnBlockerManager {
 
         // Load persisted blockers placed previously
         plugin.getServer().getScheduler().runTask(plugin, this::loadPersistedBlockers);
+    }
+
+    /**
+     * Reloads spawn blocker configurations from the config file.
+     */
+    public void reloadBlockers() {
+        spawnBlockersConfig.reloadConfig();
+        loadBlockers();
+        plugin.debug("Spawn blockers reloaded", "spawn_blockers");
     }
 
     /**

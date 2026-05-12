@@ -1,0 +1,101 @@
+# ===============================
+# SPAWNKEYCONFIG.YML DOCUMENTATION
+# ===============================
+# This file defines custom spawn keys used to spawn power mobs.
+#
+# ===============================
+# ROOT STRUCTURE
+# ===============================
+#
+# ROOT:
+# spawn-keys:
+#   <key-id>:                  # Individual spawn key
+#     enabled:                 # Required for use
+#     material:                # Item material for the key
+#     name:                    # Display name
+#     lore:                    # Lore lines
+#       - "..."
+#     spawn-ids:               # One or more mob ids, or "random" for a Random Power Mob (non predefind ones)
+#       - random
+#
+#     require-context:         # True to validate spawn conditions before use
+#     contextFailureText:      # Message shown if context validation fails
+#
+#     involve-timers:          # True to enforce spawn cooldowns
+#     timerRestrictionText:    # Message shown if timer validation fails
+#
+#     announcement-text:       # Lines shown before spawning
+#       - "..."
+#     announcement-text-interval: 2.5
+#
+#     sound-effect:            # Sound played when the mob spawns
+#       sound-type: ENTITY_EXPERIENCE_ORB_PICKUP
+#       sound-volume: 1
+#       sound-pitch: 1
+#
+#     particle-effect:         # Particle bursts during the announcement sequence
+#       particle-type: EXPLOSION
+#       particle-shape: ORB
+#       particle-radius: 2
+#       particle-count: 25
+#       particle-duration: 1
+#       particle-interval-ticks: 5
+#
+spawn-keys:
+  random:
+    enabled: true
+    material: TRIPWIRE_HOOK
+    name: "&cPower Mob Spawn Key"
+    lore:
+      - "&7Use this to spawn a Power Mob"
+      - "&7Default key"
+    spawn-ids:
+      - random
+    require-context: true
+    contextFailureText: "&cThe key doesnt seem to react."
+    involve-timers: false
+    timerRestrictionText: "&cThe key doesnt respond. Maybe try at a different time?"
+    announcement-text: []
+    announcement-text-interval: 2.5
+    sound-effect:
+      sound-type: ENTITY_EXPERIENCE_ORB_PICKUP
+      sound-volume: 1
+      sound-pitch: 1
+    particle-effect:
+      particle-type: EXPLOSION
+      particle-shape: ORB
+      particle-radius: 2
+      particle-count: 25
+      particle-duration: 1
+      particle-interval-ticks: 5
+
+  the-adventurer:
+    enabled: true
+    material: GOAT_HORN
+    name: "&2The Adventurers Call"
+    lore:
+      - "&2Use to call a lost adventurer to you."
+      - "&2Maybe they will share their loot?"
+    spawn-ids:
+      - lost-adventurer
+    require-context: true
+    contextFailureText: "&cThere doesn't seem to be any Lost Adventurers nearby."
+    involve-timers: false
+    timerRestrictionText: "&cNo Lost Adventurers hear your call. Finding any may take time."
+    announcement-text:
+      - ""
+      - "&aThere is some rustling in the distance..."
+      - "&aA Lost Adventurer seems to be approaching."
+      - "&aHe doesnt seem too friendly!"
+    announcement-text-interval: 2.5
+    sound-effect:
+      sound-type: BLOCK_AZALEA_LEAVES_BREAK
+      sound-volume: 1
+      sound-pitch: 0.5
+    particle-effect:
+      particle-type: EXPLOSION
+      particle-shape: ORB
+      particle-radius: 2
+      particle-count: 25
+      particle-duration: 3.0
+      particle-interval-ticks: 5

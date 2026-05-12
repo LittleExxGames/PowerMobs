@@ -3,6 +3,7 @@ package com.powermobs.mobs.timing;
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.config.PowerManager;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.mobs.SpawnContext;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;

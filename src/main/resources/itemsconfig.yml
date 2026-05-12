@@ -40,10 +40,11 @@
 #                                # Valid values: Any positive integer
 #                                # Default: Not set (uses default model)
 #
-# glow:                          # Boolean (OPTIONAL) - Adds enchantment glow effect without showing enchantments
+# glow:                          # Boolean (OPTIONAL) - Adds or removes enchantment glow effect
 #                                # Valid values: true, false
-#                                # Default: false
-#                                # Note: Adds hidden Unbreaking I enchantment for glow effect
+#                                # Default: inactive (caused by enchantments)
+#
+# hide-enchantments:             # Boolean (OPTIONAL) - Hides enchantments without removing them
 #
 # # Enchantments System
 # enchantments:                  # List of Maps (OPTIONAL) - Item enchantments
@@ -213,21 +214,34 @@
 #                                # Valid values: Any positive decimal number
 #                                # Default: 5.0
 #
-#     particle-type:             # String - Particle type to spawn (for PARTICLES effect)
+#     particle-settings:         # Map - Particle settings (for PARTICLES effect)
+#       particle-type:           # String - Particle type to spawn
 #                                # Valid values: Any Particle enum name (e.g., HEART, FLAME, SMOKE_NORMAL)
 #                                # Default: HEART
 #                                # See: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Particle.html
+#       particle-shape:           # String
+#                                # Default: ORB
+#                                # Valid values: ORB, CIRCLE, SQUARE, CUBE
+#       particle-radius:         # Number
+#                                # Default: 1.0 (1 block radius)
+#       particle-count:          # Integer
+#                                # Default: 20
+#       particle-duration:       # Integer (In seconds)
+#                                # Default: 0 (one-time burst)
+#       particle-interval-ticks: # Integer (In ticks. 20 ticks = 1 second)
+#                                # Default: 5
 #
-#     sound-type:                # String - Sound to play (for SOUND effect)
+#     sound-settings:            # Map - Sound settings (for SOUND effect)
+#       sound-type:              # String - Sound to play
 #                                # Valid values: Any Sound enum name (e.g., ENTITY_EXPERIENCE_ORB_PICKUP)
 #                                # Default: ENTITY_EXPERIENCE_ORB_PICKUP
 #                                # See: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
 #
-#     sound-volume:              # Number - Sound volume (for SOUND effect)
+#       sound-volume:            # Number
 #                                # Valid values: 0.0-10.0 (1.0 = normal volume)
 #                                # Default: 1.0
 #
-#     sound-pitch:               # Number - Sound pitch (for SOUND effect)
+#       sound-pitch:             # Number
 #                                # Valid values: 0.5-2.0 (1.0 = normal pitch)
 #                                # Default: 1.0
 #
@@ -299,6 +313,7 @@
 #     unbreakable:           # OPTIONAL
 #     custom-model-data:     # OPTIONAL
 #     glow:                  # OPTIONAL
+#     hide-enchantments:     # OPTIONAL
 #
 #     enchantments:          # OPTIONAL (list)
 #       - type:              # REQUIRED
@@ -371,27 +386,29 @@
 #         # PARTICLES OPTIONS
 #         # ─────────────────────────────
 #         # effect: PARTICLES
-#         particle-type:             # Particle type (example: FLAME, HEART, SOUL_FIRE_FLAME)
+#         particle-settings:
+#           particle-type:             # Particle type (example: FLAME, HEART, SOUL_FIRE_FLAME)
 #
-#         # Optional customization:
-#         particle-shape:            # ORB, CIRCLE, SQUARE, CUBE
-#                                    # Default: ORB
-#         particle-radius:           # How far from the center particles can appear (blocks)
-#                                    # Default: 1.0   Limit: 0.0–10.0
-#         particle-count:            # How many particles appear each “pulse”
-#                                    # Default: 20    Limit: 0–200
-#         particle-duration:         # How long it keeps spawning (seconds). 0 = one-time burst
-#                                    # Default: 0     Limit: 0–30
-#         particle-interval-ticks:   # How often it spawns during duration (20 ticks = 1 second)
-#                                    # Default: 5     Limit: 1–20
+#           # Optional customization:
+#           particle-shape:            # ORB, CIRCLE, SQUARE, CUBE
+#                                      # Default: ORB
+#           particle-radius:           # How far from the center particles can appear (blocks)
+#                                      # Default: 1.0   Limit: 0.0–10.0
+#           particle-count:            # How many particles appear each “pulse”
+#                                      # Default: 20    Limit: 0–200
+#           particle-duration:         # How long it keeps spawning (seconds). 0 = one-time burst
+#                                      # Default: 0     Limit: 0–30
+#           particle-interval-ticks:   # How often it spawns during duration (20 ticks = 1 second)
+#                                      # Default: 5     Limit: 1–20
 #
 #         # ─────────────────────────────
 #         # SOUND OPTIONS
 #         # ─────────────────────────────
 #         # effect: SOUND
-#         sound-type:        # e.g. ENTITY_VILLAGER_AMBIENT
-#         sound-volume:      # 0.0–10.0
-#         sound-pitch:       # 0.5–2.0
+#         sound-settings:
+#           sound-type:        # e.g. ENTITY_VILLAGER_AMBIENT
+#           sound-volume:      # 0.0–10.0
+#           sound-pitch:       # 0.5–2.0
 #
 #         # ─────────────────────────────
 #         # IMMUNITY OPTIONS
@@ -416,29 +433,29 @@
 # ===============================
 # Define custom equipment that can be used and dropped by mobs
 equipment:
-  # Weapons configuration
+  # Weapons Configuration
   weapons:
     void-scythe:
       material: NETHERITE_HOE
-      name: "&5Void Scythe"
+      name: §5Void Scythe
       lore:
-        - "&7Harvests the essence of foes"
+        - §7Harvests the essence of foes
       enchantments:
         - type: SHARPNESS
           level: 6
         - type: SWEEPING_EDGE
           level: 4
+      glow: true
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 4
+          amount: 4.0
           operation: ADD_NUMBER
-      glow: true
       effects:
         void-drain:
           trigger: ON_HIT
           effect: HEAL
           target: ATTACKER
-          chance: 0.30
+          chance: 0.3
           healing: 1.0
           effect-stack:
             soul-particles: {}
@@ -446,22 +463,28 @@ equipment:
           trigger: ON_HIT
           effect: POTION
           target: VICTIM
-          potion-type: WEAKNESS
-          potion-duration: 15
-          potion-level: 1
           chance: 0.25
+          potion-type: WEAKNESS
+          potion-level: 1
+          potion-duration: 15
         soul-particles:
           trigger: ON_HIT
           effect: PARTICLES
-          particle-type: SOUL_FIRE_FLAME
           center: VICTIM
-          chance: 0
-    
+          chance: 0.0
+          particle-settings:
+            particle-type: SOUL_FIRE_FLAME
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
+
     thunder-mace:
       material: MACE
-      name: "&eThunder Mace"
+      name: §eThunder Mace
       lore:
-        - "&7Crackling with unstable charge"
+        - §7Crackling with unstable charge
       enchantments:
         - type: KNOCKBACK
           level: 3
@@ -481,20 +504,20 @@ equipment:
 
     hunters-bow:
       material: BOW
-      name: "&dHunters Bow"
+      name: §dHunters Bow
       lore:
-        - "&7The lost bow of a great hunter"
+        - §7The lost bow of a great hunter
       enchantments:
-        - type: POWER
-          level: 3
         - type: INFINITY
           level: 1
+        - type: POWER
+          level: 3
 
     shadow-blade:
       material: IRON_SWORD
-      name: "&8Shadow Blade"
+      name: §8Shadow Blade
       lore:
-        - "&7Strikes from obscurity"
+        - §7Strikes from obscurity
       enchantments:
         - type: SHARPNESS
           level: 3
@@ -502,23 +525,23 @@ equipment:
           level: 5
       attributes:
         - type: ATTACK_SPEED
-          amount: 0.20
+          amount: 0.2
           operation: ADD_SCALAR
       effects:
         shadow-slip:
           trigger: ON_HIT
           effect: POTION
           target: ATTACKER
-          potion-type: INVISIBILITY
-          potion-duration: 3
-          potion-level: 1
           chance: 0.35
+          potion-type: INVISIBILITY
+          potion-level: 1
+          potion-duration: 3
 
     crystal-longbow:
       material: BOW
-      name: "&dCrystal Longbow"
+      name: §dCrystal Longbow
       lore:
-        - "&7With great power comes a cost..."
+        - §7With great power comes a cost...
       enchantments:
         - type: POWER
           level: 12
@@ -529,22 +552,28 @@ equipment:
           trigger: SHOOT_PROJECTILE
           effect: PARTICLES
           center: SELF
-          particle-type: END_ROD
           chance: 1.0
+          particle-settings:
+            particle-type: END_ROD
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
         backlash:
           trigger: SHOOT_PROJECTILE
           effect: POTION
           target: SELF
+          chance: 1.0
           potion-type: HARM
-          potion-duration: 3
           potion-level: 4
-          chance: 1.0  
+          potion-duration: 3
 
     warriors-might:
       material: IRON_SWORD
-      name: "&dWarrior's Might"
+      name: §dWarrior's Might
       lore:
-        - "&7A fallen warrior's blade, once used against the Ender Dragon"
+        - §7A fallen warrior's blade, once used against the Ender Dragon
       enchantments:
         - type: SHARPNESS
           level: 2
@@ -553,154 +582,172 @@ equipment:
 
     axing-a-question:
       material: WOODEN_AXE
-      name: "&6Axing A Question"
+      name: §6Axing A Question
       lore:
-        - "&7Used only by those lost in thought"
+        - §7Used only by those lost in thought
       unbreakable: true
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 0
+          amount: 0.0
           operation: ADD_NUMBER
         - type: ATTACK_SPEED
           amount: -0.1
-          operation: ADD_SCALAR    
+          operation: ADD_SCALAR
       effects:
         ponder:
           trigger: ON_HIT
           effect: SOUND
           center: VICTIM
-          sound-type: ENTITY_VILLAGER_AMBIENT
-          sound-volume: 1.0
-          sound-pitch: 1.0
-          chance: 1.0 
+          chance: 1.0
+          sound-settings:
+            sound-type: ENTITY_VILLAGER_AMBIENT
+            sound-volume: 1.0
+            sound-pitch: 1.0
 
     flame-sword:
       material: DIAMOND_SWORD
-      name: "&cFlame Sword"
+      name: §cFlame Sword
       lore:
-        - "&7A sword engulfed in flames"
-        - "&7All that will be left of your enemies are ashes"
+        - §7A sword engulfed in flames
+        - §7All that will be left of your enemies are ashes
       enchantments:
         - type: FIRE_ASPECT
           level: 2
         - type: SHARPNESS
           level: 5
+      unbreakable: true
+      glow: true
+      custom-model-data: 1001
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 9
+          amount: 9.0
           operation: ADD_NUMBER
-      unbreakable: true
-      custom-model-data: 1001
-      glow: true
       effects:
         flame-particles:
           trigger: HOLDING
           effect: PARTICLES
           center: SELF
-          particle-type: FLAME
           chance: 0.1
-
+          particle-settings:
+            particle-type: FLAME
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
 
     frost-axe:
       material: NETHERITE_AXE
-      name: "&bFrost Axe"
+      name: §bFrost Axe
       lore:
-        - "&7A freezing axe"
-        - "&7Slows enemies on hit"
+        - §7A freezing axe
+        - §7Slows enemies on hit
       enchantments:
         - type: SHARPNESS
           level: 4
+      unbreakable: true
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 12
+          amount: 12.0
           operation: ADD_NUMBER
         - type: ATTACK_SPEED
           amount: -0.2
           operation: ADD_SCALAR
-      unbreakable: true
       effects:
         freeze-strike:
           trigger: ON_HIT
           effect: POTION
-          potion-type: SLOWNESS
           target: VICTIM
           chance: 1.0
-          potion-duration: 15
+          potion-type: SLOWNESS
           potion-level: 1
+          potion-duration: 15
 
     storm-spear:
       material: TRIDENT
-      name: "&bStorm Striker"
+      name: §bStorm Striker
       lore:
-        - "&7A spear that calls the storm"
+        - §7A spear that calls the storm
       enchantments:
-        - type: LOYALTY
-          level: 3
         - type: IMPALING
           level: 4
+        - type: LOYALTY
+          level: 3
       effects:
         thunder-crash:
           trigger: ON_HIT
           effect: POTION
           target: VICTIM
-          potion-type: SLOWNESS
-          potion-duration: 15
-          potion-level: 2
           chance: 0.35
+          potion-type: SLOWNESS
+          potion-level: 2
+          potion-duration: 15
         storm-mark:
           trigger: ON_HIT
           effect: PARTICLES
           center: VICTIM
-          particle-type: ELECTRIC_SPARK
           chance: 1.0
+          particle-settings:
+            particle-type: ELECTRIC_SPARK
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
 
     hunters-crossbow:
       material: CROSSBOW
-      name: "&aHunter's Crossbow"
+      name: §aHunter's Crossbow
       lore:
-        - "&7Favored by patient marksmen"
+        - §7Favored by patient marksmen
       enchantments:
-        - type: QUICK_CHARGE
-          level: 2
         - type: PIERCING
           level: 3
+        - type: QUICK_CHARGE
+          level: 2
       effects:
         crippling-shot:
           trigger: PROJECTILE_HIT
           effect: POTION
           target: VICTIM
-          potion-type: SLOWNESS
-          potion-duration: 60
-          potion-level: 2
           chance: 0.6
+          potion-type: SLOWNESS
+          potion-level: 2
+          potion-duration: 60
         flare-mark:
           trigger: PROJECTILE_HIT
           effect: PARTICLES
           center: VICTIM
-          particle-type: CRIT
-          chance: 1.0    
+          chance: 1.0
+          particle-settings:
+            particle-type: CRIT
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
 
     gale-daggers:
       material: IRON_SWORD
-      name: "&fGale Dagger"
+      name: §fGale Dagger
       lore:
-        - "&7Light blades that ride the wind"
+        - §7Light blades that ride the wind
       attributes:
         - type: ATTACK_SPEED
-          amount: 2
+          amount: 2.0
           operation: ADD_SCALAR
         - type: ATTACK_DAMAGE
-          amount: 2
+          amount: 2.0
           operation: ADD_NUMBER
       effects:
         wind-step:
           trigger: ON_HIT
           effect: POTION
           target: ATTACKER
-          potion-type: SPEED
-          potion-duration: 10
-          potion-level: 1
           chance: 0.3
+          potion-type: SPEED
+          potion-level: 1
+          potion-duration: 10
           effect-stack:
             wind-sound:
               chance: 1.0
@@ -708,17 +755,18 @@ equipment:
           trigger: ON_HIT
           effect: SOUND
           center: ATTACKER
-          sound-type: ENTITY_BREEZE_WHIRL
-          sound-volume: 0.5
-          sound-pitch: 1.0
-          chance: 0
+          chance: 0.0
+          sound-settings:
+            sound-type: ENTITY_BREEZE_WHIRL
+            sound-volume: 0.5
+            sound-pitch: 1.0
 
     steelwood-blade:
       material: WOODEN_SWORD
-      name: "&2Steelwood Blade"
+      name: §2Steelwood Blade
       lore:
-        - "&7Carved from extinct steelwood trees"
-        - "&7Lighter and stronger than normal wood"
+        - §7Carved from extinct steelwood trees
+        - §7Lighter and stronger than normal wood
       enchantments:
         - type: SHARPNESS
           level: 2
@@ -727,30 +775,31 @@ equipment:
 
     pure-gem-dagger:
       material: DIAMOND_SWORD
-      name: "&6Pure Gem Dagger"
+      name: §6Pure Gem Dagger
       lore:
-        - "&7An ancient gem dagger tipped with a tempered nether star"
-        - "&7Imbued with the power to penetrate any armor"
+        - §7An ancient gem dagger tipped with a tempered nether star
+        - §7Imbued with the power to penetrate any armor
       enchantments:
         - type: SMITE
           level: 3
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 2
+          amount: 2.0
           operation: ADD_NUMBER
       effects:
         gem-strike:
           trigger: ON_HIT
           effect: PURE_DAMAGE
           target: VICTIM
+          chance: 1.0
           damage: 2.0
 
     fanged-blade:
       material: DIAMOND_SWORD
-      name: "&4Fanged Blade"
+      name: §4Fanged Blade
       lore:
-        - "&7A blade made from the fangs of a spider queen"
-        - "&7Enchanted to cut down spiders swiftly"
+        - §7A blade made from the fangs of a spider queen
+        - §7Enchanted to cut down spiders swiftly
       enchantments:
         - type: BANE_OF_ARTHROPODS
           level: 9
@@ -759,149 +808,150 @@ equipment:
           trigger: ON_HIT
           effect: POTION
           target: VICTIM
+          chance: 0.4
           potion-type: POISON
-          potion-duration: 40
           potion-level: 1
-          chance: 0.4  
-    
+          potion-duration: 40
+
     starved-blade:
       material: STONE_SWORD
-      name: "&8Starved Blade"
+      name: §8Starved Blade
       lore:
-        - "&4Burried for ages with its courrupted wielder"
-        - "&4Craving flesh, it feeds on those it strikes"
+        - §4Burried for ages with its courrupted wielder
+        - §4Craving flesh, it feeds on those it strikes
       enchantments:
         - type: SHARPNESS
           level: 5
         - type: UNBREAKING
-          level: 10    
+          level: 10
       effects:
         hunger-strike:
           trigger: ON_HIT
           effect: POTION
           target: VICTIM
-          potion-type: HUNGER
-          potion-duration: 10
-          potion-level: 3
           chance: 0.5
+          potion-type: HUNGER
+          potion-level: 3
+          potion-duration: 10
         flesh-feast:
           trigger: ON_HIT
           effect: POTION
           target: VICTIM
-          potion-type: POISON 
-          potion-duration: 10
-          potion-level: 3
           chance: 0.5
+          potion-type: POISON
+          potion-level: 3
+          potion-duration: 10
 
     blue-dragon-sword:
       material: DIAMOND_SWORD
-      name: "&9Blue Dragon Sword"
+      name: §9Blue Dragon Sword
       lore:
-        - "&7Forged through the scales of a dragon"
-        - "&7Heated with an ancient flame in the nether"
-        - "&7Empowered with the dragon's fury"
-        - "&7Its magic, once strong, now will fade as it's last wielder falls"
+        - §7Forged through the scales of a dragon
+        - §7Heated with an ancient flame in the nether
+        - §7Empowered with the dragon's fury
+        - §7Its magic, once strong, now will fade as it's last wielder falls
       enchantments:
-        - type: SHARPNESS
-          level: 3
         - type: FIRE_ASPECT
           level: 1
-        - type: UNBREAKING
-          level: 5
-        - type: SMITE
-          level: 3
         - type: LOOTING
           level: 3
+        - type: SHARPNESS
+          level: 3
+        - type: SMITE
+          level: 3
+        - type: UNBREAKING
+          level: 5
         - type: VANISHING_CURSE
-          level: 1  
-      attributes:  
-        - type: ATTACK_DAMAGE
-          amount: 9
-          operation: ADD_NUMBER
-      
-    childrens-sparring-sword:
-      material: WOODEN_SWORD
-      name: "&eChildren's Sparring Sword"
-      lore:
-        - "&7A lightweight wooden sword for training"
+          level: 1
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 1
+          amount: 9.0
+          operation: ADD_NUMBER
+
+    childrens-sparring-sword:
+      material: WOODEN_SWORD
+      name: §eChildren's Sparring Sword
+      lore:
+        - §7A lightweight wooden sword for training
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 1.0
           operation: ADD_NUMBER
 
     roulette-sword:
       material: GOLDEN_SWORD
-      name: "&6Roulette Sword"
+      name: §6Roulette Sword
       lore:
-        - "&7Chances are you'll get what you deserve"
+        - §7Chances are you'll get what you deserve
       enchantments:
         - type: FORTUNE
           level: 7
-        - type: UNBREAKING
-          level: 7
         - type: SHARPNESS
+          level: 7
+        - type: UNBREAKING
           level: 7
       effects:
         roulette-spin:
           trigger: ON_HIT
           effect: SOUND
           center: SELF
-          sound-type: ENTITY_PLAYER_LEVELUP
-          sound-volume: 1.0
-          sound-pitch: 1.0
           chance: 1.0
           cooldown: 3
+          sound-settings:
+            sound-type: ENTITY_PLAYER_LEVELUP
+            sound-volume: 1.0
+            sound-pitch: 1.0
           effect-stack:
-            black:
-              chance: 0.2
             red:
-              chance: 0.2
-            blue:
               chance: 0.2
             green:
               chance: 0.2
+            blue:
+              chance: 0.2
             white:
+              chance: 0.2
+            black:
               chance: 0.2
         black:
           trigger: ON_HIT
-          chance: 0
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: BLINDNESS
-          potion-duration: 10
           potion-level: 5
+          potion-duration: 10
         red:
           trigger: ON_HIT
-          chance: 0
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: STRENGTH
-          potion-duration: 20
           potion-level: 1
+          potion-duration: 20
         white:
           trigger: ON_HIT
-          chance: 0
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: SPEED
-          potion-duration: 20
           potion-level: 2
+          potion-duration: 20
         green:
           trigger: ON_HIT
-          chance: 0
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: HASTE
-          potion-duration: 20
           potion-level: 2
+          potion-duration: 20
         blue:
           trigger: ON_HIT
-          chance: 0
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: HARM
-          potion-duration: 3
           potion-level: 1
+          potion-duration: 3
 
 
         
@@ -912,28 +962,28 @@ equipment:
   armor:
     comfort:
       material: NETHERITE_CHESTPLATE
-      name: "&aComfort"
+      name: §aComfort
       lore:
-        - "&7Feels like a warm hug"
+        - §7Feels like a warm hug
       enchantments:
         - type: PROTECTION
           level: 3
       attributes:
         - type: ARMOR
-          amount: 2
+          amount: 2.0
           operation: ADD_NUMBER
         - type: ARMOR_TOUGHNESS
-          amount: 1
-          operation: ADD_NUMBER  
+          amount: 1.0
+          operation: ADD_NUMBER
         - type: MAX_HEALTH
-          amount: 10
+          amount: 10.0
           operation: ADD_NUMBER
 
     infernal-helmet:
       material: NETHERITE_HELMET
-      name: "&cInfernal Helmet"
+      name: §cInfernal Helmet
       lore:
-        - "&7Forged in the depths of the Nether"
+        - §7Forged in the depths of the Nether
       enchantments:
         - type: FIRE_PROTECTION
           level: 4
@@ -941,17 +991,17 @@ equipment:
           level: 4
       attributes:
         - type: ARMOR
-          amount: 5
+          amount: 5.0
           operation: ADD_NUMBER
         - type: ARMOR_TOUGHNESS
-          amount: 3
+          amount: 3.0
           operation: ADD_NUMBER
 
     infernal-chestplate:
       material: NETHERITE_CHESTPLATE
-      name: "&cInfernal Chestplate"
+      name: §cInfernal Chestplate
       lore:
-        - "&7Forged in the depths of the Nether"
+        - §7Forged in the depths of the Nether
       enchantments:
         - type: FIRE_PROTECTION
           level: 4
@@ -959,17 +1009,17 @@ equipment:
           level: 4
       attributes:
         - type: ARMOR
-          amount: 10
+          amount: 10.0
           operation: ADD_NUMBER
         - type: ARMOR_TOUGHNESS
-          amount: 3
+          amount: 3.0
           operation: ADD_NUMBER
 
     infernal-leggings:
       material: NETHERITE_LEGGINGS
-      name: "&cInfernal Leggings"
+      name: §cInfernal Leggings
       lore:
-        - "&7Forged in the depths of the Nether"
+        - §7Forged in the depths of the Nether
       enchantments:
         - type: FIRE_PROTECTION
           level: 4
@@ -977,95 +1027,102 @@ equipment:
           level: 4
       attributes:
         - type: ARMOR
-          amount: 8
+          amount: 8.0
           operation: ADD_NUMBER
         - type: ARMOR_TOUGHNESS
-          amount: 3
+          amount: 3.0
           operation: ADD_NUMBER
 
     infernal-boots:
       material: NETHERITE_BOOTS
-      name: "&cInfernal Boots"
+      name: §cInfernal Boots
       lore:
-        - "&7Forged in the depths of the Nether"
+        - §7Forged in the depths of the Nether
       enchantments:
+        - type: FEATHER_FALLING
+          level: 4
         - type: FIRE_PROTECTION
           level: 4
         - type: PROTECTION
           level: 4
-        - type: FEATHER_FALLING
-          level: 4
       attributes:
         - type: ARMOR
-          amount: 5
+          amount: 5.0
           operation: ADD_NUMBER
         - type: ARMOR_TOUGHNESS
-          amount: 3
+          amount: 3.0
           operation: ADD_NUMBER
-    
+
     water-waders:
       material: IRON_BOOTS
-      name: "&bWater Waders"
+      name: §bWater Waders
       lore:
-        - "&7Nobody can say you are out of your depth!"
+        - §7Nobody can say you are out of your depth!
       enchantments:
         - type: DEPTH_STRIDER
           level: 8
       attributes:
         - type: ARMOR
-          amount: 4
+          amount: 4.0
           operation: ADD_NUMBER
 
     long-fall-boots:
       material: IRON_BOOTS
-      name: "&bLong Fall Boots"
+      name: §bLong Fall Boots
       lore:
-        - "&7Boots that negate fall damage"
+        - §7Boots that negate fall damage
       enchantments:
         - type: FEATHER_FALLING
           level: 10
         - type: PROTECTION
           level: 4
+      unbreakable: true
       attributes:
         - type: ARMOR
-          amount: 1
+          amount: 1.0
           operation: ADD_NUMBER
         - type: GRAVITY
-          amount: -0.10
-          operation: ADD_SCALAR  
-          slots: [feet]
-      unbreakable: true
+          amount: -0.1
+          operation: ADD_SCALAR
+          slots:
+            - feet
       effects:
         negate-fall-damage:
           trigger: EQUIPPED
           effect: IMMUNITY
           target: SELF
-          cooldown: 0
+          chance: 1.0
           negate-fall-damage: true
 
     boots-of-alure:
       material: DIAMOND_BOOTS
-      name: "&aBoots of Alure"
+      name: §aBoots of Alure
       lore:
-        - "&7You look slightly nicer wearing these"
+        - §7You look slightly nicer wearing these
       enchantments:
-        - type: PROTECTION
-          level: 1
         - type: FEATHER_FALLING
+          level: 1
+        - type: PROTECTION
           level: 1
       effects:
         sparkle:
           trigger: EQUIPPED
           effect: PARTICLES
           center: SELF
-          particle-type: HAPPY_VILLAGER
           chance: 0.05
+          particle-settings:
+            particle-type: HAPPY_VILLAGER
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
 
     hard-hat:
       material: IRON_HELMET
-      name: "&7Hard Hat"
+      name: §7Hard Hat
       lore:
-        - "&7Safety first!"
+        - §7Safety first!
       enchantments:
         - type: PROTECTION
           level: 2
@@ -1074,68 +1131,68 @@ equipment:
           trigger: ON_HIT_TAKEN
           effect: POTION
           target: SELF
+          chance: 1.0
           potion-type: DAMAGE_RESISTANCE
-          potion-duration: 10
           potion-level: 1
-          chance: 1.0    
+          potion-duration: 10
 
     rusted-helmet:
       material: CHAINMAIL_HELMET
-      name: "&6Rusted Helmet"
+      name: §6Rusted Helmet
       lore:
-        - "&7Old and worn helmet"
+        - §7Old and worn helmet
       enchantments:
         - type: PROTECTION
           level: 1
       attributes:
         - type: ARMOR
-          amount: 1
+          amount: 1.0
           operation: ADD_NUMBER
 
     rusted-chestplate:
       material: CHAINMAIL_CHESTPLATE
-      name: "&6Rusted Chestplate"
+      name: §6Rusted Chestplate
       lore:
-        - "&7Old and worn chestplate"
+        - §7Old and worn chestplate
       enchantments:
         - type: PROTECTION
           level: 1
       attributes:
         - type: ARMOR
-          amount: 3
-          operation: ADD_NUMBER      
+          amount: 3.0
+          operation: ADD_NUMBER
 
     rusted-leggings:
       material: CHAINMAIL_LEGGINGS
-      name: "&6Rusted Leggings"
+      name: §6Rusted Leggings
       lore:
-        - "&7Old and worn leggings"
+        - §7Old and worn leggings
       enchantments:
         - type: PROTECTION
           level: 1
       attributes:
         - type: ARMOR
-          amount: 2
-          operation: ADD_NUMBER      
+          amount: 2.0
+          operation: ADD_NUMBER
 
     rusted-boots:
       material: CHAINMAIL_BOOTS
-      name: "&6Rusted Boots"
+      name: §6Rusted Boots
       lore:
-        - "&7Old and worn boots"
+        - §7Old and worn boots
       enchantments:
         - type: PROTECTION
           level: 1
       attributes:
         - type: ARMOR
-          amount: 1
+          amount: 1.0
           operation: ADD_NUMBER
-          
+
     miners-helm:
       material: GOLDEN_HELMET
-      name: "&7Old Miner's Helm"
+      name: §7Old Miner's Helm
       lore:
-        - "&7A bit faulty, but it still works occasionally"
+        - §7A bit faulty, but it still works occasionally
       enchantments:
         - type: PROTECTION
           level: 2
@@ -1144,258 +1201,263 @@ equipment:
           trigger: EQUIPPED
           effect: POTION
           target: SELF
-          potion-type: NIGHT_VISION
-          potion-duration: 15
-          potion-level: 1
           chance: 0.7
           cooldown: 10
-    
+          potion-type: NIGHT_VISION
+          potion-level: 1
+          potion-duration: 15
+
     herobines-cursed-pants:
       material: DIAMOND_LEGGINGS
-      name: "&0Herobrine's Cursed Pants"
+      name: §0Herobrine's Cursed Pants
       lore:
-        - "&7An aura of dread and death to all those who come near the wearer"
+        - §7An aura of dread and death to all those who come near the wearer
       enchantments:
         - type: BINDING_CURSE
           level: 1
       attributes:
         - type: ARMOR
-          amount: 2
+          amount: 2.0
           operation: ADD_NUMBER
       effects:
         damage-cast:
           trigger: EQUIPPED
           effect: AOE_POTION
           center: SELF
+          chance: 0.4
+          cooldown: 3
           potion-type: INSTANT_DAMAGE
-          potion-duration: 10
           potion-level: 1
+          potion-duration: 10
           radius: 4.0
           aoe-include-caster: false
           aoe-include-allies: false
           aoe-include-players: true
           aoe-include-others: true
-          cooldown: 3
-          chance: 0.4
         shadow-cast:
           trigger: EQUIPPED
           effect: AOE_POTION
           center: SELF
+          chance: 1.0
           potion-type: DARKNESS
-          potion-duration: 10
           potion-level: 1
+          potion-duration: 10
           radius: 8.0
           aoe-include-caster: false
           aoe-include-allies: false
           aoe-include-players: true
           aoe-include-others: true
-          chance: 1.0  
 
     mountaineer-boots:
       material: IRON_BOOTS
-      name: "&7Mountaineer Boots"
+      name: §7Mountaineer Boots
       lore:
-        - "&7Height is no obstacle"
-        - "&7Each step becomes easier to take"
+        - §7Height is no obstacle
+        - §7Each step becomes easier to take
       enchantments:
         - type: PROTECTION
           level: 2
+      unbreakable: true
       attributes:
         - type: STEP_HEIGHT
           amount: 0.5
-          operation: ADD_NUMBER  
-      unbreakable: true   
+          operation: ADD_NUMBER
 
     lost-adventurers-helmet:
       material: LEATHER_HELMET
-      name: "&eLost Adventurer's Helmet"
+      name: §eLost Adventurer's Helmet
       lore:
-        - "&7A helmet containing the stories of countless adventures"
+        - §7A helmet containing the stories of countless adventures
       enchantments:
         - type: PROTECTION
           level: 2
         - type: UNBREAKING
-          level: 6  
+          level: 6
       attributes:
         - type: ARMOR
-          amount: 2
+          amount: 2.0
           operation: ADD_NUMBER
-          slots: [head]
+          slots:
+            - head
         - type: MAX_HEALTH
-          amount: 4
+          amount: 4.0
           operation: ADD_NUMBER
-          slots: [head]
+          slots:
+            - head
       effects:
         keen-mind:
           trigger: EQUIPPED
           effect: POTION
           target: SELF
-          potion-type: HERO_OF_THE_VILLAGE
-          potion-duration: 60
-          potion-level: 1
           chance: 0.1
           cooldown: 300
+          potion-type: HERO_OF_THE_VILLAGE
+          potion-level: 1
+          potion-duration: 60
 
     lost-adventurers-chestplate:
       material: LEATHER_CHESTPLATE
-      name: "&eLost Adventurer's Chestplate"
+      name: §eLost Adventurer's Chestplate
       lore:
-        - "&7A chestplate entwined with the spirit of adventure"
+        - §7A chestplate entwined with the spirit of adventure
       enchantments:
         - type: PROTECTION
           level: 2
         - type: UNBREAKING
-          level: 6  
+          level: 6
       attributes:
         - type: ARMOR
-          amount: 4
+          amount: 4.0
           operation: ADD_NUMBER
-          slots: [chest]
+          slots:
+            - chest
         - type: MAX_HEALTH
-          amount: 8
+          amount: 8.0
           operation: ADD_NUMBER
-          slots: [chest]
+          slots:
+            - chest
       effects:
         fearless-heart:
           trigger: EQUIPPED
           effect: POTION
           target: SELF
-          potion-type: ABSORPTION
-          potion-duration: 60
-          potion-level: 1
           chance: 1.0
           cooldown: 59
+          potion-type: ABSORPTION
+          potion-level: 1
+          potion-duration: 60
 
     lost-adventurers-leggings:
       material: LEATHER_LEGGINGS
-      name: "&eLost Adventurer's Leggings"
+      name: §eLost Adventurer's Leggings
       lore:
-        - "&7A set of leggings born the weight of many battles"
+        - §7A set of leggings born the weight of many battles
       enchantments:
         - type: PROTECTION
           level: 2
         - type: UNBREAKING
-          level: 6  
+          level: 6
       attributes:
         - type: ARMOR
-          amount: 3
+          amount: 3.0
           operation: ADD_NUMBER
-          slots: [legs]
+          slots:
+            - legs
         - type: MAX_HEALTH
-          amount: 6
+          amount: 6.0
           operation: ADD_NUMBER
-          slots: [legs]
+          slots:
+            - legs
       effects:
         weight-bearer:
           trigger: EQUIPPED
           effect: POTION
           target: SELF
+          chance: 1.0
           potion-type: STRENGTH
-          potion-duration: 10
           potion-level: 1
-          chance: 1.0    
+          potion-duration: 10
 
     lost-adventurers-boots:
       material: LEATHER_BOOTS
-      name: "&eLost Adventurer's Boots"
+      name: §eLost Adventurer's Boots
       lore:
-        - "&7A pair of boots that have walked countless paths"
+        - §7A pair of boots that have walked countless paths
       enchantments:
         - type: PROTECTION
           level: 2
         - type: UNBREAKING
-          level: 6  
+          level: 6
       attributes:
         - type: ARMOR
-          amount: 1
+          amount: 1.0
           operation: ADD_NUMBER
-          slots: [feet]
+          slots:
+            - feet
         - type: MAX_HEALTH
-          amount: 2
+          amount: 2.0
           operation: ADD_NUMBER
-          slots: [feet]
+          slots:
+            - feet
       effects:
         path-seeker:
           trigger: EQUIPPED
           effect: POTION
           target: SELF
-          potion-type: SPEED
-          potion-duration: 10
-          potion-level: 1
           chance: 1.0
+          potion-type: SPEED
+          potion-level: 1
+          potion-duration: 10
 
     damaged-ender-chestplate:
       material: DIAMOND_CHESTPLATE
-      name: "&cDamaged Ender Chestplate"
-      lore: "&7Cracked and aged, its enchanted effects are a bit... chaotic"
+      name: §cDamaged Ender Chestplate
       enchantments:
+        - type: FEATHER_FALLING
+          level: 3
         - type: PROTECTION
           level: 3
         - type: UNBREAKING
           level: 10
-        - type: FEATHER_FALLING
-          level: 3
       effects:
         damage-cast:
           trigger: ON_HIT_TAKEN
           effect: AOE_POTION
           center: SELF
+          chance: 0.1
+          cooldown: 5
           potion-type: INSTANT_DAMAGE
-          potion-duration: 1
           potion-level: 1
+          potion-duration: 1
           radius: 4.0
           aoe-include-caster: true
           aoe-include-allies: true
-          chance: 0.1
-          cooldown: 5
+          aoe-include-players: true
+          aoe-include-others: true
           effect-stack:
             levitation:
               chance: 0.25
-              when: [CHANCE_FAIL]
+              when:
+                - CHANCE_FAIL
         levitation:
           trigger: ON_HIT_TAKEN
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: LEVITATION
-          potion-duration: 2
           potion-level: 6
-          chance: 0
+          potion-duration: 2
         reinforcement:
           trigger: ON_HIT_TAKEN
           effect: POTION
           target: SELF
-          potion-type: REGENERATION
-          potion-duration: 10
-          potion-level: 2
           chance: 0.2
           cooldown: 3
+          potion-type: REGENERATION
+          potion-level: 2
+          potion-duration: 10
           effect-stack:
             high-energy:
               chance: 0.2
-              when: [CHANCE_FAIL]
+              when:
+                - CHANCE_FAIL
         high-energy:
           trigger: ON_HIT_TAKEN
           effect: POTION
           target: SELF
+          chance: 0.0
           potion-type: SPEED
-          potion-duration: 10
           potion-level: 2
-          chance: 0
+          potion-duration: 10
 
-
-        
-
-# ===============================
-# Uniques Configuration
-# ===============================
-# Define uniques items that can be used and dropped by mobs
+  # Uniques Configuration
   uniques:
 
     magnifying-glass:
       material: GLASS
-      name: "&eMagnifying Glass"
+      name: §eMagnifying Glass
       lore:
-        - "&7Somehow always has enough light to burn something"
+        - §7Somehow always has enough light to burn something
       enchantments:
         - type: FIRE_ASPECT
           level: 1
@@ -1403,83 +1465,83 @@ equipment:
 
     lantern-of-true-slight:
       material: LANTERN
-      name: "&eLantern of True Sight"
+      name: §eLantern of True Sight
       lore:
-        - "&7Grants the ability to see more than the normal eye"
+        - §7Grants the ability to see more than the normal eye
       effects:
         true-sight:
           trigger: HOLDING
           effect: POTION
           target: SELF
-          potion-type: NIGHT_VISION
           chance: 1.0
+          potion-type: NIGHT_VISION
+          potion-level: 1
           potion-duration: 12
-          potion-level: 1  
 
     rich-diamond:
       material: DIAMOND
-      name: "&cRich Diamond"
+      name: §cRich Diamond
       lore:
-        - "&7Once retrieved by a legendary miner and now fought over by kings"
-        - "&7Grants riches beyond imagination"
+        - §7Once retrieved by a legendary miner and now fought over by kings
+        - §7Grants riches beyond imagination
       enchantments:
-        - type: LOOTING
-          level: 10
         - type: FORTUNE
+          level: 10
+        - type: LOOTING
           level: 10
         - type: MENDING
           level: 10
         - type: UNBREAKING
           level: 10
-
-      attributes:
-        - type: ATTACK_DAMAGE
-          amount: 1
-          operation: ADD_NUMBER
       unbreakable: true
       glow: true
+      hide-enchantments: true
+      attributes:
+        - type: ATTACK_DAMAGE
+          amount: 1.0
+          operation: ADD_NUMBER
 
     cold-heart:
       material: BLUE_ICE
-      name: "&bCold Heart"
+      name: §bCold Heart
       lore:
-        - "&7Found in the corpse of frost dragon"
-        - "&7Freezes enemies when struck"
+        - §7Found in the corpse of frost dragon
+        - §7Freezes enemies when struck
       enchantments:
         - type: SHARPNESS
           level: 1
+      unbreakable: true
       attributes:
         - type: ATTACK_DAMAGE
-          amount: 4
+          amount: 4.0
           operation: ADD_NUMBER
         - type: ATTACK_SPEED
           amount: -0.2
           operation: ADD_SCALAR
-      unbreakable: true
       effects:
         freeze-1:
           trigger: ON_HIT
           effect: POTION
-          potion-type: SLOWNESS
           target: VICTIM
           chance: 1.0
-          potion-duration: 5
+          potion-type: SLOWNESS
           potion-level: 10
+          potion-duration: 5
         freeze-2:
           trigger: ON_HIT
           effect: POTION
-          potion-type: MINING_FATIGUE
           target: VICTIM
           chance: 1.0
-          potion-duration: 5
+          potion-type: MINING_FATIGUE
           potion-level: 10
-    
+          potion-duration: 5
+
     infernal-core:
       material: NETHER_STAR
-      name: "&cInfernal Core"
+      name: §cInfernal Core
       lore:
-        - "&7A core of pure Nether energy"
-        - "&7Radiates intense heat"
+        - §7A core of pure Nether energy
+        - §7Radiates intense heat
       enchantments:
         - type: FIRE_PROTECTION
           level: 5
@@ -1487,17 +1549,16 @@ equipment:
         nether-immune:
           trigger: INVENTORY
           effect: IMMUNITY
+          target: SELF
+          chance: 1.0
           immune-potion-types:
             - WITHER
-          target: SELF
-          cooldown: 0
-      glow: true
 
     delectable-berries:
       material: SWEET_BERRIES
-      name: "&aDelectable Berries"
+      name: §aDelectable Berries
       lore:
-        - "&7Nurishes the soul and intantly heals the body"
+        - §7Nurishes the soul and intantly heals the body
       effects:
         heal-on-consume:
           trigger: CONSUME
@@ -1508,75 +1569,85 @@ equipment:
 
     cursed-coin:
       material: GOLD_NUGGET
-      name: "&8Cursed Coin"
+      name: §8Cursed Coin
       lore:
-        - "&7Lost treasure is much more promising - with a price"
+        - §7Lost treasure is much more promising - with a price
       glow: true
       effects:
         greed-mark:
           trigger: HOLDING
           effect: POTION
           target: SELF
-          potion-type: LUCK
-          potion-duration: 10
-          potion-level: 1
           chance: 1.0
+          potion-type: LUCK
+          potion-level: 1
+          potion-duration: 10
         lingering-unease:
           trigger: HOLDING
           effect: POTION
           target: SELF
+          chance: 1.0
           potion-type: WEAKNESS
-          potion-duration: 120
           potion-level: 2
+          potion-duration: 120
         heavy-unease:
           trigger: HOLDING
           effect: POTION
           target: SELF
+          chance: 1.0
           potion-type: SLOWNESS
-          potion-duration: 120
           potion-level: 2
+          potion-duration: 120
 
     tasty_apple:
       material: GOLDEN_APPLE
-      name: "&6Tasty Apple"
+      name: §6Tasty Apple
       lore:
-        - "&7A bit harder to eat, but much more rewarding"
+        - §7A bit harder to eat, but much more rewarding
       effects:
         regen-on-consume:
           trigger: CONSUME
           effect: POTION
           target: SELF
+          chance: 1.0
           potion-type: SATURATION
           potion-level: 1
-          chance: 1.0
-    
+          potion-duration: 60
+
     wool:
       material: WHITE_WOOL
-      name: "&fWool"
+      name: §fWool
       lore:
-        - "&7Just a regular block of wool"
-        - "&7Nothing special about it - maybe?"
+        - §7Just a regular block of wool
+        - §7Nothing special about it - maybe?
       effects:
         fluff-particles:
           trigger: ON_HIT_TAKEN
           effect: PARTICLES
           center: SELF
-          particle-type: CLOUD
           chance: 1.0
+          particle-settings:
+            particle-type: CLOUD
+            particle-shape: ORB
+            particle-radius: 1.0
+            particle-count: 20
+            particle-duration: 0
+            particle-interval-ticks: 5
         soul-remnants:
           trigger: ON_HIT_TAKEN
           effect: SOUND
           center: SELF
-          sound-type: GOAT_SCREAMING_AMBIENT
-          sound-volume: 1.0
-          sound-pitch: 1.0
-          chance: 0.01 
+          chance: 0.01
+          sound-settings:
+            sound-type: GOAT_SCREAMING_AMBIENT
+            sound-volume: 1.0
+            sound-pitch: 1.0
 
     healers-wand:
       material: BLAZE_ROD
-      name: "&aHealer's Wand"
+      name: §aHealer's Wand
       lore:
-        - "&7A wand used by ancient healers"
+        - §7A wand used by ancient healers
       enchantments:
         - type: MENDING
           level: 5
@@ -1584,16 +1655,17 @@ equipment:
         minor-heal:
           trigger: RIGHT_CLICK
           effect: AOE_POTION
+          center: SELF
+          chance: 1.0
+          cooldown: 10
           potion-type: HEAL
+          potion-level: 1
           potion-duration: 1
           radius: 5.0
           aoe-include-caster: true
           aoe-include-allies: true
           aoe-include-players: true
           aoe-include-others: false
-          center: SELF
-          chance: 1.0
-          cooldown: 10
           effect-stack:
             minor-hearts:
               chance: 1.0
@@ -1602,8 +1674,8 @@ equipment:
           effect: HEAL
           target: SELF
           chance: 0.1
-          healing: 6.0
           cooldown: 30
+          healing: 6.0
           effect-stack:
             major-hearts:
               chance: 1.0
@@ -1611,26 +1683,33 @@ equipment:
           trigger: RIGHT_CLICK
           effect: PARTICLES
           center: SELF
-          particle-shape: CIRCLE
-          particle-type: HEART
-          particle-count: 10
-          chance: 0
+          chance: 0.0
+          particle-settings:
+            particle-type: HEART
+            particle-shape: CIRCLE
+            particle-radius: 1.0
+            particle-count: 10
+            particle-duration: 0
+            particle-interval-ticks: 5
         minor-hearts:
           trigger: RIGHT_CLICK
           effect: PARTICLES
           center: SELF
-          particle-shape: CIRCLE
-          particle-type: HEART
-          particle-count: 5
-          particle-radius: 5.0
-          chance: 0
+          chance: 0.0
+          particle-settings:
+            particle-type: HEART
+            particle-shape: CIRCLE
+            particle-radius: 5.0
+            particle-count: 5
+            particle-duration: 0
+            particle-interval-ticks: 5
 
     phantom-charm:
       material: PHANTOM_MEMBRANE
-      name: "&9Phantom Charm"
+      name: §9Phantom Charm
       lore:
-        - "&7Creatures once a curse, now a blessing..."
-        - "&7Embued with the soul of a phantom"
+        - §7Creatures once a curse, now a blessing...
+        - §7Embued with the soul of a phantom
       enchantments:
         - type: UNBREAKING
           level: 3
@@ -1639,75 +1718,79 @@ equipment:
           trigger: HOTBAR
           effect: POTION
           target: SELF
-          potion-type: SLOW_FALLING
-          potion-duration: 15
-          potion-level: 1
           chance: 1.0
+          potion-type: SLOW_FALLING
+          potion-level: 1
+          potion-duration: 15
         ascend:
           trigger: RIGHT_CLICK
           effect: POTION
           target: SELF
-          potion-type: LEVITATION
-          potion-duration: 5
           chance: 1.0
+          potion-type: LEVITATION
+          potion-level: 1
+          potion-duration: 5
         phantom-cry:
           trigger: RIGHT_CLICK
           effect: SOUND
           center: SELF
-          sound-type: PHANTOM_AMBIENT
-          sound-volume: 0.2
-          sound-pitch: 1.0
           chance: 1.0
+          sound-settings:
+            sound-type: PHANTOM_AMBIENT
+            sound-volume: 0.2
+            sound-pitch: 1.0
 
     heavy-stone:
       material: STONE
-      name: "&8Heavy Stone"
+      name: §8Heavy Stone
       lore:
-        - "&7Somehow keeps you grounded"
+        - §7Somehow keeps you grounded
+      unbreakable: true
       effects:
         grounded:
           trigger: INVENTORY
           effect: IMMUNITY
           target: SELF
+          chance: 1.0
           immune-potion-types:
             - LEVITATION
-          cooldown: 0
         free-fall:
           trigger: INVENTORY
           effect: IMMUNITY
           target: SELF
+          chance: 1.0
           immune-potion-types:
             - SLOW_FALLING
-          cooldown: 0    
-      unbreakable: true
 
     smoke-bomb:
       material: SNOWBALL
-      name: "&8Smoke Bomb"
+      name: §8Smoke Bomb
       effects:
         smoky:
           trigger: PROJECTILE_HIT
           effect: AOE_POTION
           center: LOCATION
+          chance: 1.0
           potion-type: BLINDNESS
+          potion-level: 1
+          potion-duration: 4
           radius: 5.0
           aoe-include-caster: true
           aoe-include-allies: true
           aoe-include-players: true
           aoe-include-others: true
-          potion-duration: 4
-          potion-level: 1
-          chance: 1.0
         smoke-landing:
           trigger: PROJECTILE_HIT
           effect: PARTICLES
           center: LOCATION
-          particle-type: SMOKE
-          particle-shape: ORB
-          particle-radius: 3.5
-          particle-count: 60
-          particle-duration: 4
-          particle-interval-ticks: 2
+          chance: 1.0
+          particle-settings:
+            particle-type: SMOKE
+            particle-shape: ORB
+            particle-radius: 3.5
+            particle-count: 60
+            particle-duration: 4
+            particle-interval-ticks: 2
 
       
 

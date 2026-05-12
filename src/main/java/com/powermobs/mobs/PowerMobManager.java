@@ -111,7 +111,7 @@ public class PowerMobManager {
         return null;
     }
 
-    public PowerMob spawnAndRegisterPowerMob(Location location, EntityType type, String configId, CreatureSpawnEvent.SpawnReason originalReason) {
+    public PowerMob spawnAndRegisterPowerMob(Location location, EntityType type, String configId, CreatureSpawnEvent.SpawnReason originalReason, boolean unrestricted) {
     if (location.getWorld() == null) {
         plugin.getLogger().warning("Tried to spawn PowerMob in null world for config " + configId);
         return null;
@@ -122,9 +122,9 @@ public class PowerMobManager {
 
     PowerMob powerMob;
     if ("random".equals(configId)) {
-        powerMob = factory.createRandomMob(spawned);
+        powerMob = (unrestricted) ? factory.createUnrestrictedRandomMob(spawned): factory.createRandomMob(spawned);
     } else {
-        powerMob = factory.createPowerMob(spawned, configId);
+        powerMob = (unrestricted) ? factory.createUnrestrictedPowerMob(spawned, configId): factory.createPowerMob(spawned, configId);
     }
 
     if (powerMob == null) {
@@ -135,7 +135,7 @@ public class PowerMobManager {
     // Register in your existing registry
     registerPowerMob(powerMob);
     return powerMob;
-}
+    }
 
     /**
      * Removes invalid power mobs

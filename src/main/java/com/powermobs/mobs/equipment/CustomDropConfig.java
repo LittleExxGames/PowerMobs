@@ -21,6 +21,7 @@ public class CustomDropConfig {
     private int maxAmount;
     private int amountWeight;
     private List<EnchantmentConfig> enchantments;
+    private boolean ignoreDropCount = false;
 
     /**
      * Creates a new custom drop configuration
@@ -69,17 +70,18 @@ public class CustomDropConfig {
                     ((Number) enchMap.get("weight")).intValue() : 100;
 
             this.enchantments.add(new EnchantmentConfig(type, minLevel, maxLevel, weight));
-
         }
+        this.ignoreDropCount = (boolean) map.getOrDefault("ignore-drop-count", false);
     }
 
-    public CustomDropConfig(String item, double chance, int minAmount, int maxAmount, int amountWeight, List<EnchantmentConfig> enchantments) {
+    public CustomDropConfig(String item, double chance, int minAmount, int maxAmount, int amountWeight, List<EnchantmentConfig> enchantments, boolean ignoreDropCount) {
         this.item = item;
         this.chance = chance;
         this.minAmount = minAmount;
         this.maxAmount = maxAmount;
         this.amountWeight = amountWeight;
         this.enchantments = new ArrayList<>(enchantments);
+        this.ignoreDropCount = ignoreDropCount;
     }
 
     public CustomDropConfig(CustomDropConfig newConfig) {
@@ -89,6 +91,7 @@ public class CustomDropConfig {
         this.maxAmount = newConfig.getMaxAmount();
         this.amountWeight = newConfig.getAmountWeight();
         this.enchantments = new ArrayList<>(newConfig.getEnchantments());
+        this.ignoreDropCount = newConfig.isIgnoreDropCount();
     }
 
 
@@ -114,6 +117,7 @@ public class CustomDropConfig {
             }
             map.put("enchantments", enchantmentList);
         }
+        map.put("ignore-drop-count", this.ignoreDropCount);
         return map;
     }
 

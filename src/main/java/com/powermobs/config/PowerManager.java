@@ -22,7 +22,6 @@ public class PowerManager {
     private final FileConfigManager itemsConfigManager;
     @Getter
     private final Map<String, PowerMobConfig> powerMobs = new HashMap<>();
-    private final Object saveLock = new Object();
     @Getter
     private FileConfiguration config;
     @Getter
@@ -71,7 +70,9 @@ public class PowerManager {
     private boolean countAllyDamage;
     @Getter
     private RandomMobConfig randomMobConfig;
+
     private volatile boolean saveInProgress = false;
+    private final Object saveLock = new Object();
 
     /**
      * Creates a new config manager

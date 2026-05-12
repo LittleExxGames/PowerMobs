@@ -1,14 +1,13 @@
 package com.powermobs.mobs.equipment;
 
+import com.powermobs.config.ParticleEffectConfig;
+import com.powermobs.config.SoundEffectConfig;
 import com.powermobs.mobs.equipment.items.*;
 import lombok.Getter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Represents a custom effect that can be applied to items
@@ -37,17 +36,9 @@ public class ItemEffect {
     private final int fireTicks;
     private final double knockbackStrength;
 
-    private final String particleType;
-    private final Shape particleShape;
-    private final double particleRadius;
-    private final int particleCount;
-    private final int particleDurationSeconds;
-    private final int particleIntervalTicks;
+    private final ParticleEffectConfig particleEffectConfig;
 
-
-    private final String soundType;
-    private final float soundVolume;
-    private final float soundPitch;
+    private final SoundEffectConfig soundEffectConfig;
 
     // AOE options
     private final boolean includeSelf;     // caster
@@ -89,17 +80,30 @@ public class ItemEffect {
         this.knockbackStrength = Math.max(0.0, section.getDouble("knockback-strength", 1.0));
         this.radius = Math.max(0.0, section.getDouble("radius", 5.0));
 
-        this.particleType = section.getString("particle-type", "HEART");
-        this.particleShape = parseEnum(Shape.class, section.getString("particle-shape", "ORB"));
-        this.particleRadius = Math.max(0.0, Math.min(10.0, section.getDouble("particle-radius", 1.0)));
-        this.particleCount = Math.max(0, Math.min(200, section.getInt("particle-count", 20)));               // per interval
-        this.particleDurationSeconds = Math.max(0, Math.min(30, section.getInt("particle-duration", 0)));     // 0 = single burst
-        this.particleIntervalTicks = Math.max(1, Math.min(20, section.getInt("particle-interval-ticks", 5))); // 1–20
+        ConfigurationSection particleSection = section.getConfigurationSection("particle-settings");
+        if (particleSection == null) {
+            // LEGACY SUPPORT
+            String particleType = section.getString("particle-type", "HEART");
+            String particleShape = section.getString("particle-shape", "ORB");
+            double particleRadius = Math.max(0.0, Math.min(10.0, section.getDouble("particle-radius", 1.0)));
+            int particleCount = Math.max(0, Math.min(200, section.getInt("particle-count", 20))); // per interval
+            int particleDurationSeconds = Math.max(0, Math.min(30, section.getInt("particle-duration", 0))); // 0 = single burst
+            int particleIntervalTicks = Math.max(1, Math.min(20, section.getInt("particle-interval-ticks", 5)));
+            this.particleEffectConfig = new ParticleEffectConfig(particleType, particleShape, particleRadius, particleCount, particleDurationSeconds, particleIntervalTicks);
+        } else {
+            this.particleEffectConfig = new ParticleEffectConfig(particleSection);
+        }
 
-
-        this.soundType = section.getString("sound-type", "ENTITY_EXPERIENCE_ORB_PICKUP");
-        this.soundVolume = (float) Math.max(0.0, section.getDouble("sound-volume", 1.0));
-        this.soundPitch = (float) Math.max(0.0, section.getDouble("sound-pitch", 1.0));
+        ConfigurationSection soundSection = section.getConfigurationSection("sound-settings");
+        if (soundSection == null){
+            // LEGACY SUPPORT
+            String soundType = section.getString("sound-type", "ENTITY_EXPERIENCE_ORB_PICKUP");
+            double soundVolume = Math.max(0.0, section.getDouble("sound-volume", 1.0));
+            double soundPitch = Math.max(0.0, section.getDouble("sound-pitch", 1.0));
+            this.soundEffectConfig = new SoundEffectConfig(soundType, soundVolume, soundPitch);
+        } else {
+            this.soundEffectConfig = new SoundEffectConfig(soundSection);
+        }
 
         // AOE options
         this.includeSelf = section.getBoolean("aoe-include-caster", false);
@@ -218,5 +222,77 @@ public class ItemEffect {
 
     public boolean isValid() {
         return validateProblems().isEmpty();
+    }
+
+    public Map<String, Object> toConfigMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        map.put("trigger", trigger.name());
+        map.put("effect", effectType.name());
+
+        if (targetProvided || usesTarget()) {
+            map.put("target", targetType.name());
+        }
+        if (usesCenter()) {
+            map.put("center", centerType.name());
+        }
+
+        map.put("chance", chance);
+
+        if (cooldown > 0) {
+            map.put("cooldown", cooldown);
+        }
+
+        switch (effectType) {
+            case POTION, AOE_POTION -> {
+                map.put("potion-type", potionType);
+                map.put("potion-level", potionLevel);
+                map.put("potion-duration", potionDuration);
+            }
+            case PURE_DAMAGE -> map.put("damage", damage);
+            case HEAL -> map.put("healing", healing);
+            case IGNITE -> map.put("fire-ticks", fireTicks);
+            case KNOCKBACK -> map.put("knockback-strength", knockbackStrength);
+            case PARTICLES -> {
+                if (particleEffectConfig != null) {
+                    map.put("particle-settings", particleEffectConfig.toConfigMap());
+                }
+            }
+            case SOUND -> {
+                if (soundEffectConfig != null) {
+                    map.put("sound-settings", soundEffectConfig.toConfigMap());
+                }
+            }
+            case IMMUNITY -> {
+                if (immunePotionTypes != null && !immunePotionTypes.isEmpty()) {
+                    map.put("immune-potion-types", new ArrayList<>(immunePotionTypes));
+                }
+                if (clearFire) {
+                    map.put("clear-fire", true);
+                }
+                if (negateFallDamage) {
+                    map.put("negate-fall-damage", true);
+                }
+            }
+        }
+
+        if (effectType == EffectType.AOE_POTION) {
+            map.put("radius", radius);
+            map.put("aoe-include-caster", includeSelf);
+            map.put("aoe-include-allies", includeAllies);
+            map.put("aoe-include-players", includePlayers);
+            map.put("aoe-include-others", includeOthers);
+        }
+
+        if (effectStack != null && !effectStack.isEmpty()) {
+            Map<String, Object> stackMap = new LinkedHashMap<>();
+            for (Map.Entry<String, Map<String, Object>> entry : effectStack.entrySet()) {
+                Map<String, Object> overrides = entry.getValue();
+                stackMap.put(entry.getKey(), overrides != null ? new LinkedHashMap<>(overrides) : new LinkedHashMap<>());
+            }
+            map.put("effect-stack", stackMap);
+        }
+
+        return map;
     }
 }

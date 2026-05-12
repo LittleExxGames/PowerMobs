@@ -46,6 +46,22 @@ public class PowerMobFactory {
     private final Set<EntityType> allMobs = new HashSet<>(List.of(EntityType.values()));
 
     /**
+     * Creates a power mob from a predefined configuration without entity type restrictions
+     *
+     * @param entity   The entity to enhance
+     * @param configId The configuration ID
+     * @return The power mob, or null if the configuration is invalid
+     */
+    public PowerMob createUnrestrictedPowerMob(LivingEntity entity, String configId) {
+        PowerMobConfig config = this.plugin.getConfigManager().getPowerMob(configId);
+        if (config == null) {
+            this.plugin.getLogger().warning("Invalid power mob configuration: " + configId);
+            return null;
+        }
+        return spawnPowerMobProcess(entity, configId, config);
+    }
+
+    /**
      * Creates a power mob from a predefined configuration
      *
      * @param entity   The entity to enhance
@@ -65,8 +81,10 @@ public class PowerMobFactory {
             return null;
         }
         entity = replaceEntity(entity, config.getEntityType());
+        return spawnPowerMobProcess(entity, configId, config);
+    }
 
-        // Create the power mob with resolved ability settings
+    private PowerMob spawnPowerMobProcess(LivingEntity entity, String configId, PowerMobConfig config){
         Map<String, Map<String, Object>> resolvedAbilitySettings = resolveAbilitySettings(config.getPossibleAbilities());
         PowerMob powerMob = new PowerMob(this.plugin, entity, configId, resolvedAbilitySettings);
 
@@ -111,6 +129,20 @@ public class PowerMobFactory {
     }
 
     /**
+     * Creates a random power mob without dimension or entity type restrictions
+     * @param entity The entity to enhance
+     * @return The power mob
+     */
+    public PowerMob createUnrestrictedRandomMob(LivingEntity entity) {
+        RandomMobConfig config = this.plugin.getConfigManager().getRandomMobConfig();
+        if (config == null || !config.isEnabled()) {
+            this.plugin.getLogger().warning("Random mob config is null or disabled");
+            return null;
+        }
+        return spawnRandomMobProcess(entity, config);
+    }
+
+    /**
      * Creates a random power mob
      *
      * @param entity The entity to enhance
@@ -151,6 +183,10 @@ public class PowerMobFactory {
             }
         }
         }
+        return spawnRandomMobProcess(entity, config);
+    }
+
+    private PowerMob spawnRandomMobProcess(LivingEntity entity, RandomMobConfig config){
         // Create the power mob with resolved ability settings (applies to chosen abilities)
         Map<String, Map<String, Object>> possible = config.getPossibleAbilities();
         List<String> pool = new ArrayList<>(possible.keySet());
@@ -305,14 +341,8 @@ public class PowerMobFactory {
      * @return The new entity, or the original if replacement fails
      */
     public LivingEntity replaceEntity(LivingEntity original, EntityType newType) {
-//        if (original.getType() == newType) {
-//            return original;
-//        }
-        // Get the current location of the original entity
         Location loc = original.getLocation();
-        // Remove the original entity
         original.remove();
-        // Return the new replaced entity
         return (LivingEntity) loc.getWorld().spawnEntity(loc, newType, CreatureSpawnEvent.SpawnReason.CUSTOM);
     }
 

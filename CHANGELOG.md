@@ -1,3 +1,22 @@
+V1.3.0 - 5/12/2026
+- Added Spawn Keys! You can spawn a specific Power Mob or have a list of potential Power Mobs spawn.
+Also, you can have dialogue play before a Power Mob spawns through a key with some particle and sound effects.
+- Added Spawn key debug option in the config.yml through "debugSpawnKeys:"
+- A new spawnkey.use permission is added to allow players to use spawn keys or not.
+- Added the option to have a drop ignore the drop range defined on a Power Mob through "ignore-drop-count" in the mobs config.
+This is great for if you want a guaranteed drop from a Power Mob!
+- Changed the functionality of the "glow" item config to be more accurate to its name. Shows or removes glow regardless of enchantments.
+- Added a new item config option of "hide-enchantments" to hide enchantments from an item.
+- Changed particle and sound configurations to use their own config subsection for items for clarity.
+- Added a new command "/powermob update" to update the item configuration to the current item format.
+- Changed item configuration to use the new format through the update command.
+- Fixed a bug in the display command for Power Mobs info to actually display the item name instead of the literal object.
+
+Recommended: Regenerate your config.yml, itemsconfig.yml, and mobsconfig.yml to reflect these changes.
+Also, run "/powermob update" in-game to update your custom item configuration to the current item format.
+Legacy formats will only be supported for a few versions so make sure you keep on top of this.
+Let me know if there are any inconsistencies for updating the item configuration. (BACK UP YOUR CONFIG JUST IN CASE)
+
 V1.2.2 - 3/22/2026
 - Added customization for the announcement message that is sent when a mob spawns. (Found in config.yml)
 - Changed spawn ranges to be bounding boxes. Now you can define multiple ranges for the mob to spawn in!

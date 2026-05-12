@@ -74,14 +74,13 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
         if (tempItem == null && currentItem == null) {
             CustomDropConfig existing = mobConfig.getDrop(selectedItemId);
             if (existing != null) {
-                // Editing existing
                 currentItem = existing;
-                tempItem = new CustomDropConfig(currentItem); // deep copy
+                tempItem = new CustomDropConfig(currentItem);
                 plugin.debug("Editing existing drop config: " + currentItem.getItem(), "ui");
             } else {
                 // New config for this ID (defaults similar to previous code)
                 plugin.debug("Creating new drop config for item: " + selectedItemId, "ui");
-                tempItem = new CustomDropConfig(selectedItemId, 1, 1, 1, 100, new ArrayList<>());
+                tempItem = new CustomDropConfig(selectedItemId, 1, 1, 1, 100, new ArrayList<>(), false);
             }
         } else if (tempItem != null && !Objects.equals(tempItem.getItem(), selectedItemId)) {
             // 3) User changed the selected item via ItemSelectionPage
@@ -90,10 +89,8 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
         }
         // else: returning to the page without selection changes -> keep currentItem & tempItem
 
-        // Display Item (Center of top row)
         ItemStack displayItem = getDisplayItem();
 
-        // Warning for conflicting custom-item drops
         boolean shouldShowWarning = false;
         if (!isVanillaItem(tempItem.getItem())) {
             CustomDropConfig existingDrop = mobConfig.getDrop(tempItem.getItem());
@@ -143,6 +140,14 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
         );
         inventory.setItem(24, chanceItem);
 
+        //Ignore Drop Count
+        ItemStack ignoreCountItem = createGuiItem(
+                (tempItem.isIgnoreDropCount()) ? Material.GREEN_CONCRETE : Material.RED_CONCRETE,
+                ChatColor.GOLD + "Ignore Drop count: " + tempItem.isIgnoreDropCount(),
+                ChatColor.GRAY + "If true, this item will drop independent of drop limits"
+        );
+        inventory.setItem(31, ignoreCountItem);
+
         // Enchantment Settings (if applicable)
         boolean isEnchantable = canHaveEnchantments();
         if (isEnchantable) {
@@ -188,7 +193,7 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
             inventory.setItem(40, singleEnchantItem);
         }
 
-        // Save/Cancel Buttons
+        // Save Button
         ItemStack saveButton = createGuiItem(
                 Material.EMERALD,
                 ChatColor.GREEN + "Save Changes",
@@ -197,7 +202,6 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
         inventory.setItem(45, saveButton);
 
         // Back button
-        List<String> backDisplay = new ArrayList<>();
         boolean warn = false;
         if (currentItem == null) {
             warn = true;
@@ -360,7 +364,12 @@ public class ItemDropConfigurationPage extends AbstractGUIPage {
                 });
                 return true;
 
-            case 40: //Enchantments
+            case 31: // Ignore drop count
+                tempItem.setIgnoreDropCount(!tempItem.isIgnoreDropCount());
+                build();
+                return true;
+
+            case 40: // Enchantments
                 if (canHaveEnchantments()) {
                     startChatInput(player, ChatInputType.ENCHANTMENTS, (value, p) -> {
                         parseEnchantment(value);

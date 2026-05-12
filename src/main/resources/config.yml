@@ -17,6 +17,7 @@ settings:
   debugItemEffects: true
   debugSpawnBlockers: true
   debugSaveAndLoad: true
+  debugSpawnKeys: true
   
   # Global chance for a mob to be replaced with a power mob when it spawns naturally.
   # 0.0 = 0%, 1.0 = 100%

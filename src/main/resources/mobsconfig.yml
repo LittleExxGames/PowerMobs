@@ -130,6 +130,7 @@
 #       - type: <ENCHANT>
 #         level: "<min>-<max>"
 #         weight: 100
+#    ignore-drop-count:         # Boolean (OPTIONAL) - If true, this drop will never be counted towards drop-count and will roll its drop chance independently.
 #   # Special case:
 #   # - item: EXPERIENCE        # Gives only experience, using exp-amount/exp-weight style fields.
 

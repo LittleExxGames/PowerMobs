@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.*;
 
 /**
  * Manages custom configuration files
@@ -71,12 +73,23 @@ public class FileConfigManager {
      * Saves the configuration to disk
      */
     public void saveConfig() {
+        saveConfig(0);
+    }
+
+    /**
+     * Saves the configuration to disk but spacing between a given depth in a yaml file
+     */
+    public void saveConfig(int spacingDepth) {
         if (this.fileConfiguration == null || this.configFile == null) {
             return;
         }
 
         try {
-            getConfig().save(this.configFile);
+            if (spacingDepth <= 0) {
+                getConfig().save(this.configFile);
+            } else {
+                saveWithSpacing(this.configFile, (YamlConfiguration) getConfig(), spacingDepth);
+            }
         } catch (IOException ex) {
             plugin.getLogger().severe("Could not save config to " + this.configFile + ": " + ex.getMessage());
         }
@@ -90,6 +103,46 @@ public class FileConfigManager {
         if (!this.configFile.exists()) {
             plugin.saveResource(fileName, false);
         }
+    }
+
+    public static void saveWithSpacing(File file, YamlConfiguration cfg, int spacingDepth) throws IOException {
+        String yaml = cfg.saveToString();
+        String[] lines = yaml.split("\\R", -1);
+
+        List<String> output = new ArrayList<>();
+        Map<Integer, Boolean> seenAtDepth = new HashMap<>();
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                output.add(line);
+                continue;
+            }
+
+            int leadingSpaces = 0;
+            while (leadingSpaces < line.length() && line.charAt(leadingSpaces) == ' ') {
+                leadingSpaces++;
+            }
+
+            int depth = leadingSpaces / 2;
+            boolean isKeyLine = trimmed.endsWith(":") && !trimmed.startsWith("-");
+
+            if (isKeyLine && depth > 0 && depth <= spacingDepth) {
+                if (Boolean.TRUE.equals(seenAtDepth.get(depth))) {
+                    output.add("");
+                }
+                seenAtDepth.put(depth, true);
+            }
+
+            output.add(line);
+        }
+
+        while (!output.isEmpty() && output.get(0).isBlank()) {
+            output.remove(0);
+        }
+
+        Files.writeString(file.toPath(), String.join(System.lineSeparator(), output), StandardCharsets.UTF_8);
     }
 }
 

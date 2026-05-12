@@ -5,7 +5,7 @@ import com.powermobs.UI.framework.PlayerSessionData;
 import com.powermobs.config.PowerMobConfig;
 import com.powermobs.config.SpawnBlockerManager;
 import com.powermobs.mobs.PowerMob;
-import com.powermobs.mobs.timing.SpawnContext;
+import com.powermobs.mobs.SpawnContext;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -62,11 +62,38 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
             case "help":
                 sendHelp(sender);
                 return true;
+            case "update":
+                //TODO: seperate updates for mobs, items, spawn keys, and spawn blockers
+                return updateConfig(sender);
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + args[0]);
                 sendHelp(sender);
                 return true;
         }
+    }
+
+    private boolean updateConfig(CommandSender sender) {
+        if (!sender.hasPermission("powermobs.update")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            return true;
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Updating custom items config...");
+
+        boolean saved = this.plugin.getEquipmentManager().saveEquipment();
+        if (!saved) {
+            sender.sendMessage(ChatColor.RED + "Failed to update custom items.");
+            return true;
+        }
+
+        sender.sendMessage(ChatColor.GREEN + "Custom items updated successfully.");
+        sender.sendMessage(ChatColor.GRAY + "Weapons: " + this.plugin.getEquipmentManager().getWeapons().size()
+                + ", Armor: " + this.plugin.getEquipmentManager().getArmor().size()
+                + ", Uniques: " + this.plugin.getEquipmentManager().getUniques().size()
+                + ", Spawn blockers: " + this.plugin.getEquipmentManager().getSpawnBlockerItems().size()
+                + ", Spawn keys: " + this.plugin.getEquipmentManager().getSpawnKeyItems().size());
+
+        return true;
     }
 
     /**
@@ -242,7 +269,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
         // List equipment
         for (String type : config.getPossibleEquipment().keySet()) {
             if (!config.getPossibleEquipment().get(type).isEmpty()) {
-                sender.sendMessage(ChatColor.GOLD + type + ": " + ChatColor.WHITE + config.getPossibleEquipment().get(type).get(0));
+                sender.sendMessage(ChatColor.GOLD + type + ": " + ChatColor.WHITE + config.getPossibleEquipment().get(type).get(0).getItem());
             }
         }
 
@@ -274,9 +301,10 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
         try {
             this.plugin.getConfigManager().reloadConfig();
             this.plugin.getAbilityManager().loadAbilities();
-            this.plugin.getEquipmentManager().loadEquipment();
+            this.plugin.getSpawnBlockerManager().reloadBlockers();
+            this.plugin.getSpawnKeyManager().reloadKeys();
+            this.plugin.getEquipmentManager().reloadEquipment();
             this.plugin.getItemEffectManager().reloadEffects();
-
             sender.sendMessage(ChatColor.GREEN + "Configuration reloaded successfully!");
         } catch (Exception e) {
             sender.sendMessage(ChatColor.RED + "Error reloading configuration: " + e.getMessage());
@@ -1209,6 +1237,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
             completions.add("remove");
             completions.add("config");
             completions.add("spawnblocker");
+            completions.add("update");
             completions.add("delete");
             completions.add("help");
 

@@ -1,4 +1,4 @@
-package com.powermobs.mobs.timing;
+package com.powermobs.mobs;
 
 import com.powermobs.config.PowerManager;
 import lombok.Builder;

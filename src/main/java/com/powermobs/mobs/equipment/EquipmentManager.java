@@ -1,9 +1,8 @@
 package com.powermobs.mobs.equipment;
 
+import com.google.common.collect.Multimap;
 import com.powermobs.PowerMobsPlugin;
-import com.powermobs.config.EquipmentItemConfig;
-import com.powermobs.config.FileConfigManager;
-import com.powermobs.config.SpawnBlockerManager;
+import com.powermobs.config.*;
 import com.powermobs.mobs.PowerMob;
 import com.powermobs.utils.WeightedRandom;
 import lombok.Getter;
@@ -24,10 +23,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Manages custom equipment for mobs
@@ -37,12 +33,15 @@ public class EquipmentManager {
 
     private final PowerMobsPlugin plugin;
     @Getter
-    private final Map<String, ItemStack> weapons = new HashMap<>();
+    private final Map<String, ItemStack> weapons = new LinkedHashMap<>();
     @Getter
-    private final Map<String, ItemStack> armor = new HashMap<>();
+    private final Map<String, ItemStack> armor = new LinkedHashMap<>();
     @Getter
-    private final Map<String, ItemStack> uniques = new HashMap<>();
+    private final Map<String, ItemStack> uniques = new LinkedHashMap<>();
     private final FileConfigManager equipmentConfigManager;
+
+    private volatile boolean saveInProgress = false;
+    private final Object saveLock = new Object();
 
     public EquipmentManager(PowerMobsPlugin plugin) {
         this.plugin = plugin;
@@ -110,12 +109,134 @@ public class EquipmentManager {
             }
         }
 
-        // Load spawn blockers as items
         loadSpawnBlockerItems();
 
+        loadSpawnKeyItems();
+
         this.plugin.debug("Loaded " + this.weapons.size() + " weapons, " + this.armor.size() +
-                " armor pieces, " + this.uniques.size() + " unique items, and " +
-                getSpawnBlockerItems().size() + " spawn blocker items.", "save_and_load");
+                " armor pieces, " + this.uniques.size() + " unique items, " +
+                getSpawnBlockerItems().size() + " spawn blocker items, and " + getSpawnKeyItems().size() + " spawn key items.", "save_and_load");
+    }
+
+    private Map<String, Object> toConfigMap(){
+        Map<String, Object> fullMap = new LinkedHashMap<>();
+
+        fullMap.put("weapons", itemGroupConfigMap(weapons));
+        fullMap.put("armor", itemGroupConfigMap(armor));
+        fullMap.put("uniques", itemGroupConfigMap(uniques));
+        return fullMap;
+    }
+
+    private Map<String, Object> itemGroupConfigMap(Map<String, ItemStack> items){
+        Map<String, Object> itemMap = new LinkedHashMap<>();
+        for (String id : items.keySet()){
+            if (id.startsWith("spawn-blocker-") || id.startsWith("spawn-key-")) {continue;}
+            Map<String, Object> groupMap = new LinkedHashMap<>();
+            ItemStack item = items.get(id);
+            ItemMeta meta = item.getItemMeta();
+            groupMap.put("material", item.getType().toString());
+            groupMap.put("name", meta.getDisplayName());
+            List<String> loreList = meta.getLore();
+            groupMap.put("lore", loreList);
+            List<Map<String, Object>> enchantments = new ArrayList<>();
+            Map<Enchantment, Integer> enchants = meta.getEnchants();
+            if (!enchants.isEmpty()) {
+                for ( Enchantment enchant : enchants.keySet()){
+                    Map<String, Object> enchantment = new LinkedHashMap<>();
+                    enchantment.put("type", enchant.getKey().value().toUpperCase());
+                    enchantment.put("level", enchants.get(enchant));
+                    enchantments.add(enchantment);
+                }
+            }
+            if (!enchantments.isEmpty()) {
+                groupMap.put("enchantments", enchantments);
+            }
+            if (meta.isUnbreakable()) { groupMap.put("unbreakable", true); }
+            if(meta.hasEnchantmentGlintOverride()) { groupMap.put("glow", meta.getEnchantmentGlintOverride()); }
+
+            if (meta.getItemFlags().contains(ItemFlag.HIDE_ENCHANTS)) { groupMap.put("hide-enchantments", true); }
+            if (meta.hasCustomModelData()) {
+                groupMap.put("custom-model-data", meta.getCustomModelData());
+            }
+            Map<String, Map<String, Object>> groupedAttributes = new LinkedHashMap<>();
+
+            Multimap<Attribute, AttributeModifier> mods = meta.getAttributeModifiers();
+            if (mods != null) {
+                for (Attribute attr : mods.keySet()) {
+                    for (AttributeModifier mod : mods.get(attr)) {
+                        String type = attr.getKey().getKey().toUpperCase();
+                        double amount = mod.getAmount();
+                        String operation = mod.getOperation().name();
+
+                        String groupKey = type + "|" + amount + "|" + operation;
+
+                        Map<String, Object> attribute = groupedAttributes.computeIfAbsent(groupKey, key -> {
+                            Map<String, Object> map = new LinkedHashMap<>();
+                            map.put("type", type);
+                            map.put("amount", amount);
+                            map.put("operation", operation);
+                            return map;
+                        });
+                        String slotName = (mod.getSlot() != null) ? mod.getSlot().name().toLowerCase() : null;
+                        if (slotName != null) {
+                            @SuppressWarnings("unchecked")
+                            List<String> slots = (List<String>) attribute.computeIfAbsent("slots", key -> new ArrayList<String>());
+                            if (!slots.contains(slotName)) {
+                                slots.add(slotName);
+                            }
+                        }
+                    }
+                }
+            }
+
+            List<Map<String, Object>> attributes = new ArrayList<>(groupedAttributes.values());
+            if (!attributes.isEmpty()) {
+                groupMap.put("attributes", attributes);
+            }
+            Map<String, Object> itemEffects = new LinkedHashMap<>();
+            plugin.getItemEffectManager().getItemEffects(item).forEach(effect -> {
+                itemEffects.put(effect.getEffectId(), effect.toConfigMap());
+            });
+            if (!itemEffects.isEmpty()) {
+                groupMap.put("effects", itemEffects);
+            }
+            itemMap.put(id, groupMap);
+        }
+        return itemMap;
+    }
+
+
+    public boolean saveEquipment() {
+        if (saveInProgress) {
+            this.plugin.debug("Save already in progress, please wait", "save_and_load");
+            return false;
+        }
+
+        synchronized (saveLock) {
+            saveInProgress = true;
+        }
+
+        try {
+            this.plugin.debug("Saving equipment config...", "save_and_load");
+
+            FileConfiguration config = this.equipmentConfigManager.getConfig();
+            config.set("equipment", null);
+            config.createSection("equipment", toConfigMap());
+            this.equipmentConfigManager.saveConfig(2);
+
+            // Reload so the file becomes the source of truth and any normalization is applied
+            this.weapons.clear();
+            this.armor.clear();
+            this.uniques.clear();
+            loadEquipment();
+
+            return true;
+        } catch (Exception e) {
+            this.plugin.getLogger().severe("Failed to save equipment config: " + e.getMessage());
+            return false;
+        } finally {
+            saveInProgress = false;
+        }
     }
 
     /**
@@ -155,6 +276,26 @@ public class EquipmentManager {
                     coloredLore.add(org.bukkit.ChatColor.translateAlternateColorCodes('&', line));
                 }
                 meta.setLore(coloredLore);
+            }
+
+            // Add glow effect
+            if (section.getBoolean("glow", false)) {
+                meta.setEnchantmentGlintOverride(true);
+            }
+
+            // Hide enchantments
+            if (section.getBoolean("hide-enchantments", false)) {
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
+
+            // Set unbreakable
+            if (section.getBoolean("unbreakable", false)) {
+                meta.setUnbreakable(true);
+            }
+
+            // Set custom model data
+            if (section.contains("custom-model-data")) {
+                meta.setCustomModelData(section.getInt("custom-model-data"));
             }
 
             // Add enchantments
@@ -221,7 +362,7 @@ public class EquipmentManager {
                     }
                 }
 
-                // If no slots specified, default to ANY (matches your old behavior)
+                // If no slots specified, default to ANY
                 if (slotNames.isEmpty()) {
                     slotNames.add("any");
                 }
@@ -254,31 +395,24 @@ public class EquipmentManager {
                 }
             }
 
-
-            // Set unbreakable
-            if (section.getBoolean("unbreakable", false)) {
-                meta.setUnbreakable(true);
-            }
-
-            // Set custom model data
-            if (section.contains("custom-model-data")) {
-                meta.setCustomModelData(section.getInt("custom-model-data"));
-            }
-
-            // Add glow effect
-            if (section.getBoolean("glow", false)) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            }
-
             item.setItemMeta(meta);
         }
         return item;
     }
+
+    public void reloadEquipment() {
+        this.plugin.debug("Reloading equipment...", "save_and_load");
+        this.weapons.clear();
+        this.armor.clear();
+        this.uniques.clear();
+        this.equipmentConfigManager.reloadConfig();
+        loadEquipment();
+    }
+
     private static String sanitizeKeyPart(String s) {
         if (s == null) return "null";
-            return s.toLowerCase().replaceAll("[^a-z0-9/._-]", "_");
-        }
+        return s.toLowerCase().replaceAll("[^a-z0-9/._-]", "_");
+    }
 
     /**
      * Loads spawn blocker items and adds them to the uniques collection
@@ -312,13 +446,28 @@ public class EquipmentManager {
      * @return Map of spawn blocker item IDs to ItemStacks
      */
     public Map<String, ItemStack> getSpawnBlockerItems() {
-        Map<String, ItemStack> spawnBlockerItems = new HashMap<>();
+        Map<String, ItemStack> spawnBlockerItems = new LinkedHashMap<>();
         for (Map.Entry<String, ItemStack> entry : uniques.entrySet()) {
             if (entry.getKey().startsWith("spawn-blocker-")) {
                 spawnBlockerItems.put(entry.getKey(), entry.getValue());
             }
         }
         return spawnBlockerItems;
+    }
+
+    /**
+     * Gets all spawn key items
+     *
+     * @return Map of spawn key item IDs to ItemStacks
+     */
+    public Map<String, ItemStack> getSpawnKeyItems() {
+        Map<String, ItemStack> spawnKeyItems = new LinkedHashMap<>();
+        for (Map.Entry<String, ItemStack> entry : uniques.entrySet()) {
+            if (entry.getKey().startsWith("spawn-key-")) {
+                spawnKeyItems.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return spawnKeyItems;
     }
 
 
@@ -349,11 +498,35 @@ public class EquipmentManager {
      * Reloads spawn blocker items (call this when spawn blockers are reloaded)
      */
     public void reloadSpawnBlockerItems() {
-        // Remove existing spawn blocker items
         uniques.entrySet().removeIf(entry -> entry.getKey().startsWith("spawn-blocker-"));
+        plugin.getSpawnBlockerManager().reloadBlockers();
+    }
 
-        // Reload spawn blocker items
-        loadSpawnBlockerItems();
+    public void loadSpawnKeyItems() {
+        if (plugin.getSpawnKeyManager() == null) {
+            plugin.debug("SpawnKeyManager not initialized yet, skipping spawn key items", "save_and_load");
+            return;
+        }
+        for (String keyId : plugin.getSpawnKeyManager().getSpawnKeyIds()) {
+            SpawnKeyManager.SpawnKeyConfig config = plugin.getSpawnKeyManager().getSpawnKeyConfig(keyId);
+            if (config == null) {}
+            ItemStack item = plugin.getSpawnKeyManager().createSpawnKeyItem(keyId);
+            if (item != null) {
+                // Add to uniques with a prefix to distinguish them
+                String itemId = "spawn-key-" + keyId;
+                item = setCustomItemId(itemId, item);
+                this.uniques.put(itemId, item);
+                this.plugin.debug("Loaded spawn key item: " + keyId, "save_and_load");
+            }
+        }
+    }
+
+    /**
+     * Reloads spawn key items (call this when spawn keys are reloaded)
+     */
+    public void reloadSpawnKeyItems() {
+        uniques.entrySet().removeIf(entry -> entry.getKey().startsWith("spawn-key-"));
+        plugin.getSpawnKeyManager().reloadKeys();
     }
 
     /**
@@ -469,7 +642,7 @@ public class EquipmentManager {
     }
 
     public Map<String, ItemStack> getAllEquipment() {
-        Map<String, ItemStack> equipment = new HashMap<>();
+        Map<String, ItemStack> equipment = new LinkedHashMap<>();
         equipment.putAll(this.weapons);
         equipment.putAll(this.armor);
         equipment.putAll(this.uniques);

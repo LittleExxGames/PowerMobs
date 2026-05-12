@@ -93,7 +93,7 @@ public class PowerMobDropHandler {
                 continue;
             }
 
-            if (dropsAt >= dropCount) {
+            if (dropsAt >= dropCount && !drop.isIgnoreDropCount()) {
                 break;
             }
 
@@ -103,7 +103,9 @@ public class PowerMobDropHandler {
             if (item != null) {
                 location.getWorld().dropItemNaturally(location, item);
                 plugin.debug("Dropped " + amount + " " + drop.getItem() + " for player " + killer.getName(), "drops");
-                dropsAt++;
+                if (!drop.isIgnoreDropCount()) {
+                    dropsAt++;
+                }
             } else {
                 plugin.getLogger().warning("Failed to create drop item: " + drop.getItem() + " for " + mobType);
             }
