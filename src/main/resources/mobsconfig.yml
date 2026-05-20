@@ -176,6 +176,12 @@
 #   biome-groups:               # Map (OPTIONAL) - Grouped biome filters (Mountain, Forest, Plains, etc.)
 #                               # Each group is a list of biomes; normally populated by the UI.
 #
+#   requireStructures:          # Boolean (OPTIONAL) (Default: False)
+#                               # If true, it requires the Power Mob to spawn within the enabled structure restrictions.
+#
+#   structures:                 # List[String] (OPTIONAL) - Enabled structure restrictions
+#                               # Example: minecraft:ancient_city
+#
 #   time:                       # List[String] (OPTIONAL) - Allowed times of day
 #                               # Values like: DAY, NIGHT
 #                               # Empty or missing = any time.

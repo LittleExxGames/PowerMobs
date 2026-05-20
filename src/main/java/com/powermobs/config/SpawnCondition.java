@@ -5,11 +5,11 @@ import com.powermobs.utils.WeightedRandom;
 import com.powermobs.utils.WorldCatalog;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.ConfigurationSection;
-
+import org.bukkit.generator.structure.GeneratedStructure;
+import org.bukkit.generator.structure.Structure;
 import java.util.*;
 
 /**
@@ -29,6 +29,9 @@ public class SpawnCondition {
 
     private Set<String> worlds;
     private List<BoundingBox> boundingBoxes;
+    private boolean requireStructures;
+    private Set<Structure> structures;
+    private List<String> structureWarnings;
     private Set<TimeCondition> timeConditions;
     private BiomeGroupManager biomeGroupManager;
 
@@ -47,6 +50,8 @@ public class SpawnCondition {
         this.worlds = null;
         boundingBoxes = new ArrayList<>();
         boundingBoxes.add(new BoundingBox());
+        this.requireStructures = false;
+        this.structures = new LinkedHashSet<>();
         this.timeConditions = EnumSet.allOf(TimeCondition.class);
         this.biomeGroupManager = new BiomeGroupManager();
     }
@@ -62,9 +67,11 @@ public class SpawnCondition {
         this.maxDespawnTime = copy.getMaxDespawnTime();
         this.worlds = (copy.getWorlds() == null) ? null : new LinkedHashSet<>(copy.getWorlds());
         this.boundingBoxes = new ArrayList<>(copy.getBoundingBoxes());
+        this.requireStructures = copy.isRequireStructures();
+        this.structures = new LinkedHashSet<>(copy.getStructures());
+        this.structureWarnings = new ArrayList<>(copy.getStructureWarnings());
         this.timeConditions = new LinkedHashSet<>(copy.getTimeConditions());
         this.biomeGroupManager = new BiomeGroupManager(copy.getBiomeGroupManager());
-
     }
 
     /**
@@ -138,9 +145,6 @@ public class SpawnCondition {
             boundingBoxes.add(new BoundingBox(minX, maxX, minY, maxY, minZ, maxZ));
         }
 
-
-
-
         // Load custom biome group configurations if present
         ConfigurationSection biomeGroupsSection = section.getConfigurationSection("biome-groups");
         if (biomeGroupsSection != null) {
@@ -150,6 +154,17 @@ public class SpawnCondition {
             }
             this.biomeGroupManager.fromConfigMap(biomeGroupConfig);
         }
+
+        // Load structure conditions
+        this.requireStructures = section.getBoolean("requireStructures", false);
+        this.structures = loadStructures(section);
+//        ConfigurationSection structureTypesSection = section.getConfigurationSection("structures");
+//        if (structureTypesSection != null) {
+//            for (String structure : structureTypesSection.getKeys(false)) {
+//                NamespacedKey key = NamespacedKey.minecraft(structure.toLowerCase());
+//                structures.add(Registry.STRUCTURE.get(key));
+//            }
+//        }
 
 
         // Time conditions
@@ -215,6 +230,21 @@ public class SpawnCondition {
         Map<String, Object> biomeGroupConfig = this.biomeGroupManager.toConfigMap();
         if (!biomeGroupConfig.isEmpty()) {
             map.put("biome-groups", biomeGroupConfig);
+        }
+
+        map.put("requireStructures", this.requireStructures);
+        // Save the struture types enabled
+        if (this.structures != null && !this.structures.isEmpty()) {
+            List<String> structureIds = new ArrayList<>();
+            for (Structure type : this.structures) {
+                NamespacedKey key = Registry.STRUCTURE.getKey(type);
+                if (key != null) {
+                    structureIds.add(key.toString());
+                }
+            }
+            if (!structureIds.isEmpty()) {
+                map.put("structures", structureIds);
+            }
         }
 
         // Convert time conditions to string list (only if not all times allowed)
@@ -298,6 +328,33 @@ public class SpawnCondition {
                     " (time: " + time + "), Allowed: " + this.timeConditions, "mob_spawning");
             return false;
         }
+
+        if (requireStructures && this.structures != null && !this.structures.isEmpty()) {
+            int chunkX = location.getBlockX() >> 4;
+            int chunkZ = location.getBlockZ() >> 4;
+
+            if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                return false;
+            }
+
+            Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+            boolean structureMatch = false;
+
+            for (GeneratedStructure generated : chunk.getStructures()) {
+                Structure structure = generated.getStructure();
+                if (!this.structures.contains(structure)) {
+                    continue;
+                }
+
+                if (generated.getBoundingBox().contains(location.getX(), location.getY(), location.getZ())) {
+                    structureMatch = true;
+                    break;
+                }
+            }
+
+            return structureMatch;
+        }
+
         return true;
 
     }
@@ -344,10 +401,49 @@ public class SpawnCondition {
 
         Set<String> resolved = WorldCatalog.resolveWorldNamesForEnvironments(allowed);
 
-        if (resolved == null || resolved.isEmpty()) {
+        if (resolved.isEmpty()) {
             return null;
         }
 
         return new LinkedHashSet<>(resolved);
+    }
+
+    private Set<Structure> loadStructures(ConfigurationSection section) {
+        Set<Structure> resolved = new LinkedHashSet<>();
+        structureWarnings = new ArrayList<>();
+        List<String> rawIds = new ArrayList<>(section.getStringList("structures"));
+        if (rawIds.isEmpty()) {
+            ConfigurationSection structureSection = section.getConfigurationSection("structures");
+            if (structureSection != null) {
+                rawIds.addAll(structureSection.getKeys(false));
+            }
+        }
+
+        for (String rawId : rawIds) {
+            Structure structure = resolveStructure(rawId);
+            if (structure == null) {
+                structureWarnings.add(rawId);
+                continue;
+            }
+            resolved.add(structure);
+        }
+        return resolved;
+    }
+
+    private Structure resolveStructure(String rawId) {
+        if (rawId == null || rawId.isBlank()) {
+            return null;
+        }
+
+        NamespacedKey key = NamespacedKey.fromString(rawId);
+        if (key == null) {
+            try {
+                key = NamespacedKey.minecraft(rawId.toLowerCase(Locale.ROOT));
+            } catch (IllegalArgumentException ignored) {
+                return null;
+            }
+        }
+
+        return Registry.STRUCTURE.get(key);
     }
 }

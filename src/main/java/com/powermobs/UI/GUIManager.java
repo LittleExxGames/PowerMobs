@@ -53,6 +53,7 @@ public class GUIManager {
         pageManager.registerPage("mob_equipment", new MobEquipmentPage(pageManager, this));
         pageManager.registerPage("mob_equipment_item_settings", new MobEquipmentItemSettingsPage(pageManager, this));
         pageManager.registerPage("mob_spawn_conditions", new MobSpawnConditionsPage(pageManager, this));
+        pageManager.registerPage("spawn_condition_bulk_list", new SpawnConditionBulkListPage(pageManager, this));
 
         pageManager.registerPage("ability_config", new AbilityConfigGUIPage(pageManager, this));
     }

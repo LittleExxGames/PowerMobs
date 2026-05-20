@@ -1,3 +1,8 @@
+V1.3.1 - 5/19/2026
+- Added structure-based spawn conditions for Power Mobs! This includes support for structures
+in most datapacks.
+- Shifted some UI items in the Spawn Conditions page to include the structure options. 
+
 V1.3.0 - 5/12/2026
 - Added Spawn Keys! You can spawn a specific Power Mob or have a list of potential Power Mobs spawn.
 Also, you can have dialogue play before a Power Mob spawns through a key with some particle and sound effects.

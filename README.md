@@ -39,13 +39,22 @@ Define spawn blocks in `spawnblocksconfig.yml`
 - Name and lore
 - Chunk range
 
+### Spawn keys
+Define spawn keys in `spawnkeysconfig.yml`
+- Enable or disable
+- Material, name, lore
+- Spawn ids, require context, context failure text
+- Involve timers, timer restriction text
+- Announcement text, announcement text interval
+- Sound effects, particle effects
+
 ### Predefined Mobs
 Customize your mobs in `mobsconfig.yml` (Can be done in game UI)
 - Each mob can define stats, abilities, equipment, drops, and detailed spawn conditions.
 
 ### Abilities
 Defines ability defaults in `abilitiesconfig.yml` such as:
-- Radiuses, chances, cooldowns, damage, durations, and more
+- Radius, chances, cooldowns, damage, durations, and more
 
 You can also override these settings per mob:
 

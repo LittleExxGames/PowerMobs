@@ -162,7 +162,7 @@ public class MobEditorPage extends AbstractGUIPage {
         inventory.setItem(16, entitiesDisplay);
 
         // Glow option
-        String toggle = tempMobConfig.isGlowing() ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled";
+        String toggle = tempMobConfig.isGlowing() ? ChatColor.GREEN + "True" : ChatColor.RED + "False";
         ItemStack glowItem = createGuiItem(Material.GLOWSTONE_DUST,
                 ChatColor.GOLD + "Glowing On Spawn",
                 ChatColor.GRAY + "Enabled: " + toggle,

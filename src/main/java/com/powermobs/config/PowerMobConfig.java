@@ -231,7 +231,10 @@ public class PowerMobConfig implements IPowerMobConfig {
         if (conditionSection != null) {
             this.spawnCondition = new SpawnCondition(conditionSection);
         } else {
-            this.spawnCondition = new SpawnCondition(); // Default conditions
+            this.spawnCondition = new SpawnCondition();
+        }
+        for (String structureWarning : this.spawnCondition.getStructureWarnings()) {
+            PowerMobsPlugin.getInstance().getLogger().warning("Invalid spawn condition structure: " + structureWarning);
         }
 
     }

@@ -349,6 +349,9 @@ public class RandomMobConfig implements IPowerMobConfig {
         } else {
             this.spawnCondition = new SpawnCondition();
         }
+        for (String structureWarning : this.spawnCondition.getStructureWarnings()) {
+            PowerMobsPlugin.getInstance().getLogger().warning("Invalid spawn condition structure: " + structureWarning);
+        }
 
     }
 

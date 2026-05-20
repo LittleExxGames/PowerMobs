@@ -100,6 +100,22 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         );
         inventory.setItem(6, despawnDisplay);
 
+        buildWorldSelectorItem();
+
+        // Time conditions
+        List<String> times = new ArrayList<>();
+        times.add(ChatColor.GRAY + "Click to modify");
+        for (SpawnCondition.TimeCondition time : tempConfig.getTimeConditions()) {
+            times.add(ChatColor.BLUE + time.name());
+        }
+        ItemStack timeDisplay = createGuiItem(
+                Material.DAYLIGHT_DETECTOR,
+                ChatColor.LIGHT_PURPLE + "Current spawnable times:",
+                times
+        );
+        inventory.setItem(11, timeDisplay);
+
+        // Create bounding boxes
         List<BoundingBox> boxes = tempConfig.getBoundingBoxes();
         List<String> boundingBoxes = new ArrayList<>();
 
@@ -165,26 +181,28 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
         );
         inventory.setItem(13, boxDisplay);
 
+        String structureToggle = (tempConfig.isRequireStructures()) ? ChatColor.GREEN + "True" : ChatColor.RED + "False";
+        ItemStack requireStructureDisplay = createGuiItem(
+                (tempConfig.isRequireStructures()) ? Material.GREEN_CONCRETE : Material.RED_CONCRETE,
+                ChatColor.GOLD + "Require Selected Structures To Spawn",
+                ChatColor.GRAY + "Enabled: " + structureToggle,
+                ChatColor.GRAY + "Click to toggle");
+        inventory.setItem(15, requireStructureDisplay);
+
+        ItemStack structureDisplay = createGuiItem(
+                Material.STONE_BRICKS,
+                ChatColor.GOLD + "Structure Restriction List",
+                ChatColor.GRAY + "Current structure count: " + ChatColor.WHITE + tempConfig.getStructures().size(),
+                ChatColor.GRAY + "Click to view/edit"
+        );
+        inventory.setItem(16, structureDisplay);
+
         ItemStack addBoxDisplay = createGuiItem(
                 Material.LODESTONE,
                 ChatColor.GREEN + "Click to add a bounding box"
         );
         inventory.setItem(22, addBoxDisplay);
 
-        buildWorldSelectorItem();
-
-        // Time conditions
-        List<String> times = new ArrayList<>();
-        times.add(ChatColor.GRAY + "Click to modify");
-        for (SpawnCondition.TimeCondition time : tempConfig.getTimeConditions()) {
-            times.add(ChatColor.BLUE + time.name());
-        }
-        ItemStack timeDisplay = createGuiItem(
-                Material.DAYLIGHT_DETECTOR,
-                ChatColor.LIGHT_PURPLE + "Current spawnable times:",
-                times
-        );
-        inventory.setItem(16, timeDisplay);
 
         // Display biome groups
         displayBiomeGroups(tempConfig);
@@ -405,6 +423,14 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
             }
 
         }
+
+        if (slot == 11) {
+            startChatInput(player, ChatInputType.TIMES, (value, p) -> {
+                updateTimes(value);
+                pageManager.navigateTo("mob_spawn_conditions", false, p);
+            });
+        }
+
         if (slot == 13) {
             if (clickType == ClickType.RIGHT) {
                 selectedBoundingBoxIndex++;
@@ -423,11 +449,17 @@ public class MobSpawnConditionsPage extends AbstractGUIPage {
             return true;
         }
 
+        // Structure requirement toggle
+        if (slot == 15) {
+            tempConfig.setRequireStructures(!tempConfig.isRequireStructures());
+            build();
+            return true;
+        }
+
+        // Structure list editing
         if (slot == 16) {
-            startChatInput(player, ChatInputType.TIMES, (value, p) -> {
-                updateTimes(value);
-                pageManager.navigateTo("mob_spawn_conditions", false, p);
-            });
+            tempConfig = null;
+            pageManager.navigateTo("spawn_condition_bulk_list", true, player);
         }
 
         if (slot == 22) {
