@@ -65,6 +65,8 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
             case "update":
                 //TODO: seperate updates for mobs, items, spawn keys, and spawn blockers
                 return updateConfig(sender);
+            case "populate":
+                return handlePopulate(sender, args);
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + args[0]);
                 sendHelp(sender);
@@ -94,6 +96,50 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                 + ", Spawn keys: " + this.plugin.getEquipmentManager().getSpawnKeyItems().size());
 
         return true;
+    }
+
+    private boolean handlePopulate(CommandSender sender, String[] args){
+        if (!sender.hasPermission("powermobs.populate")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob populate <abilities|items|mobs|keys|blockers>");
+            return true;
+        }
+        String arg = args[1].toLowerCase();
+        switch (arg)
+        {
+            case "abilities":
+                sender.sendMessage(ChatColor.YELLOW + "Adding missing ability settings and defaults to config...");
+                this.plugin.getConfigManager().getAbilitiesConfigManager().appendMissingDefaults(2);
+                sender.sendMessage(ChatColor.YELLOW + "Updated ability settings to include missing configs and defaults!");
+                return true;
+            case "items":
+                sender.sendMessage(ChatColor.YELLOW + "Adding missing item settings and defaults to config...");
+                this.plugin.getConfigManager().getItemsConfigManager().appendMissingDefaults(3);
+                sender.sendMessage(ChatColor.YELLOW + "Updated item settings to include missing configs and defaults!");
+                return true;
+            case "mobs":
+                sender.sendMessage(ChatColor.YELLOW + "Adding missing Power Mob settings and defaults to config...");
+                this.plugin.getConfigManager().getMobsConfigManager().appendMissingDefaults(2);
+                sender.sendMessage(ChatColor.YELLOW + "Updated Power Mob settings to include missing configs and defaults!");
+                return true;
+            case "keys":
+                sender.sendMessage(ChatColor.YELLOW + "Adding missing spawn key settings and defaults to config...");
+                this.plugin.getSpawnKeyManager().getSpawnKeyConfig().appendMissingDefaults(2);
+                sender.sendMessage(ChatColor.YELLOW + "Updated spawn key settings to include missing configs and defaults!");
+                return true;
+            case "blockers":
+                sender.sendMessage(ChatColor.YELLOW + "Adding missing spawn blocker settings and defaults to config...");
+                this.plugin.getSpawnBlockerManager().getSpawnBlockersConfig().appendMissingDefaults(2);
+                sender.sendMessage(ChatColor.YELLOW + "Updated spawn blocker settings to include missing configs and defaults!");
+                return true;
+            default:
+                sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + args[0]);
+                sendHelp(sender);
+                return true;
+        }
     }
 
     /**
@@ -148,7 +194,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                 config.getEntityType();
 
         // Get the player
-        Location location = player.getTargetBlock(null, 100).getLocation().add(0, 1, 0);
+        Location location = player.getTargetBlock(null, 100).getLocation().add(0.5, 1, 0.5);
 
         // Spawn the mobs
         int spawned = 0;
@@ -1220,6 +1266,8 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GOLD + "/powermob remove <all|radius|type> [radius|type]" + ChatColor.GRAY + " - Remove power mobs");
         sender.sendMessage(ChatColor.GOLD + "/powermob config" + ChatColor.GRAY + " - Open the configuration GUI");
         sender.sendMessage(ChatColor.GOLD + "/powermob spawnblocker <give|reload|list|info>" + ChatColor.GRAY + " - Manage spawn blockers");
+        sender.sendMessage(ChatColor.GOLD + "/powermob populate <abilities|items|mobs|keys|blockers>" + ChatColor.GRAY + " - Populate the config with default data that isn't already there or configured");
+        sender.sendMessage(ChatColor.GOLD + "/powermob update" + ChatColor.GRAY + " - Updates items to the latest configuration setup");
         sender.sendMessage(ChatColor.GOLD + "/powermob delete <mobID>" + ChatColor.GRAY + " - Deletes and de-registers a power mob");
         sender.sendMessage(ChatColor.GOLD + "/powermob help" + ChatColor.GRAY + " - Show this help message");
     }
@@ -1237,6 +1285,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
             completions.add("remove");
             completions.add("config");
             completions.add("spawnblocker");
+            completions.add("populate");
             completions.add("update");
             completions.add("delete");
             completions.add("help");
@@ -1315,7 +1364,16 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                         .map(Player::getName)
                         .collect(Collectors.toList());
                 return filterCompletions(names, args[3]);
+            } else if (args[0].equalsIgnoreCase("populate")) {
+                List<String> completions = new ArrayList<>();
+                completions.add("abilities");
+                completions.add("items");
+                completions.add("mobs");
+                completions.add("keys");
+                completions.add("blockers");
+                return filterCompletions(completions, args[2]);
             }
+
         }
 
         return Collections.emptyList();

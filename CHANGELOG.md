@@ -1,3 +1,11 @@
+V1.3.2 - 6/9/2026
+- Fixed the power mobs spawn command to spawn in the center of a block instead of a corner.
+- Added a new ability called "Vexed" that spawns rushing projectile like vexes towards a target.
+- Added a new command "/powermob populate <abilities|items|mobs|keys|blockers>" to update missing config lines
+or to populate the config with missing default values. No need to regenerate configs when new abilities, mobs, or default items are added!
+Just run this new command.
+- Added the update and populate commands to the help command list.
+
 V1.3.1 - 5/19/2026
 - Added structure-based spawn conditions for Power Mobs! This includes support for structures
 in most datapacks.

@@ -43,7 +43,6 @@ public class TeleportAbility extends AbstractAbility implements Listener {
     public TeleportAbility(PowerMobsPlugin plugin) {
         super(plugin, "teleport");
 
-        // Register events
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 

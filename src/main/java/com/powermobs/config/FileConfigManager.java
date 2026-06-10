@@ -57,6 +57,92 @@ public class FileConfigManager {
         return this.fileConfiguration;
     }
 
+    public void appendMissingDefaults(int maxDepth) {
+        YamlConfiguration mainConfig = YamlConfiguration.loadConfiguration(configFile);
+        InputStream defaultStream = plugin.getResource(fileName);
+        if (defaultStream == null) return;
+
+        YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(
+                new InputStreamReader(defaultStream, StandardCharsets.UTF_8)
+        );
+
+        boolean modified = false;
+
+        for (String keyPath : defaultConfig.getKeys(true)) {
+            int currentDepth = (int) keyPath.chars().filter(ch -> ch == '.').count() + 1;
+            if (currentDepth > maxDepth) {
+                continue;
+            }
+            if (!mainConfig.contains(keyPath)) {
+
+                if (hasMissingParent(mainConfig, keyPath)) {
+                    continue;
+                }
+                Object value = defaultConfig.get(keyPath);
+                mainConfig.set(keyPath, value);
+                List<String> keyComments = defaultConfig.getComments(keyPath);
+                if (!keyComments.isEmpty()) {
+                    mainConfig.setComments(keyPath, keyComments);
+                }
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            try {
+                mainConfig.save(configFile);
+            } catch (IOException e) {
+                this.plugin.getLogger().severe("Could not save updated configuration file!");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Checks if any parent in the path string is missing from the configuration.
+     * Helps skip child elements if their parent section was already copied over wholesale.
+     */
+    private boolean hasMissingParent(YamlConfiguration config, String keyPath) {
+        int lastDot = keyPath.lastIndexOf('.');
+        while (lastDot != -1) {
+            String parentPath = keyPath.substring(0, lastDot);
+            if (!config.contains(parentPath)) {
+                return true;
+            }
+            lastDot = parentPath.lastIndexOf('.');
+        }
+        return false;
+    }
+
+    /**
+     * Gets the default configuration bundled inside the plugin jar.
+     * This does not modify the active file configuration and does not save anything to disk.
+     *
+     * @return A new FileConfiguration containing only the default resource values,
+     *         or an empty configuration if the resource does not exist
+     */
+    public FileConfiguration getDefaultConfig() {
+        InputStream defaultStream = plugin.getResource(fileName);
+        if (defaultStream == null) {
+            return new YamlConfiguration();
+        }
+
+        return YamlConfiguration.loadConfiguration(
+                new InputStreamReader(defaultStream, StandardCharsets.UTF_8)
+        );
+    }
+
+    /**
+     * Gets a value from the default configuration bundled inside the plugin jar.
+     * This does not read from the active file on disk.
+     *
+     * @param path The config path
+     * @return The default value at that path, or null if not found
+     */
+    public Object getDefaultValue(String path) {
+        return getDefaultConfig().get(path);
+    }
+
     /**
      * Gets the configuration
      *

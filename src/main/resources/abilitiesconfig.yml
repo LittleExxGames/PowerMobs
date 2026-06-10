@@ -107,6 +107,7 @@ abilities:
     # Cooldown in seconds
     cooldown: 4
 
+  # Switcheroo: Swaps the position of the player and the user
   switcheroo:
     # Chance to trigger on hit (0.0-1.0)
     chance: 0.3
@@ -116,4 +117,27 @@ abilities:
     cooldown: 5
     # Only trigger if the mob is damaged
     only-if-damaged: false
+
+  # Vexed: Summons vexes consecutively to charge at the player
+  vexed:
+    # Chance to trigger each second (0.0-1.0)
+    chance: 0.3;
+    # Max distance the ability can trigger against players
+    max-distance: 15;
+    # Sets the vexes attack damage
+    vex-damage: 4;
+    # How many consecutive vexes will spawn within the defined duration
+    vex-count: 5;
+    # How long the ability will last for
+    duration-seconds: 4;
+    # How many blocks per tick the vexes will move towards the target
+    velocity-tick-speed: 0.4;
+    # How far away from the target the vexes will spawn
+    spawn-distance: 5;
+    # The block range to make damage contact
+    hitbox-size: 0.4;
+    # Determines if it will focus a random target or only one the mob has an agro on.
+    only-target: true;
+    # Cooldown until it can trigger again
+    cooldown: 10;
 

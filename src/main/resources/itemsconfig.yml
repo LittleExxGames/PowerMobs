@@ -424,10 +424,8 @@
 #         # - IMMUNITY with cooldown: 0 + target: SELF becomes persistent while the
 #         #   item is HELD / EQUIPPED / in HOTBAR / INVENTORY (depending on trigger).
 #         # - AOE_* filters only apply to AOE_POTION effects.
-
-
-
-
+#
+#
 # ===============================
 # Equipment Configuration
 # ===============================

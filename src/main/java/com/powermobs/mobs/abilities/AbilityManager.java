@@ -32,6 +32,7 @@ public class AbilityManager {
         registerAbility(new InvisibilityAbility(this.plugin));
         registerAbility(new RegenerationAbility(this.plugin));
         registerAbility(new LaunchpadAbility(this.plugin));
+        registerAbility(new VexedAbility(this.plugin));
 
         this.plugin.debug("Loaded " + this.abilities.size() + " abilities", "save_and_load");
     }
