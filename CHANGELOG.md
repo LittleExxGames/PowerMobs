@@ -1,3 +1,18 @@
+V1.3.3 - 6/23/2026
+- Fixed a bug where abilities were not reloading properly when calling the command /powermob reload. (Summon ability fixed)
+- Fixed default permissions for spawn key use to be enabled by default for everyone.
+- Fixed /powermob populate not showing auto-complete options.
+- Added the config.yml under /powermob populate under "main" so new configs can be generated.
+- Fixed piercing damage not counting for damage tracking.
+- Part 1 of a new system for stat tracking! Implementation in gameplay in part 2. The following stats are tracked:
+Number of deaths to Power Mobs, Power Mob kills, max damage dealt in one fight against a Power Mob, and the total damage dealt to a Power Mob as a whole.
+All of these are per Power Mob and per player. Many commands are now available to view these stats. This is stored on a local database in SQLite next to server configs for casual use
+and includes a setup for mysql for multiserver external databases(or at least in theory. I haven't been able to test it).
+- Added a new set of commands under "/powermob stats" to view the stats in the database.
+- Added the new permissions into the base file for op.
+
+Recommended: Run "/powermob populate main" to generate the missing configurations in config.yml.
+
 V1.3.2 - 6/9/2026
 - Fixed the power mobs spawn command to spawn in the center of a block instead of a corner.
 - Added a new ability called "Vexed" that spawns rushing projectile like vexes towards a target.

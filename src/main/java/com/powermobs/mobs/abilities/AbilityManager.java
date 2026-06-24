@@ -3,6 +3,8 @@ package com.powermobs.mobs.abilities;
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.abilities.impl.*;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +23,7 @@ public class AbilityManager {
      * Loads all abilities from the configuration
      */
     public void loadAbilities() {
+        unloadAbilities();
         // Register built-in abilities
         registerAbility(new FireAuraAbility(this.plugin));
         registerAbility(new LightningStrikeAbility(this.plugin));
@@ -52,7 +55,22 @@ public class AbilityManager {
      * @param id The ability ID
      */
     public void unregisterAbility(String id) {
-        this.abilities.remove(id);
+        Ability removed = this.abilities.remove(id);
+        if (removed instanceof Listener listener) {
+            HandlerList.unregisterAll(listener);
+        }
+    }
+
+    /**
+     * Unloads all abilities and unregisters any listeners they own.
+     */
+    public void unloadAbilities() {
+        for (Ability ability : this.abilities.values()) {
+            if (ability instanceof Listener listener) {
+                HandlerList.unregisterAll(listener);
+            }
+        }
+        this.abilities.clear();
     }
 
     /**

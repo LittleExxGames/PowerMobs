@@ -5,10 +5,14 @@ api-version: '1.21'
 description: '${project.description}'
 authors: [LittleExx]
 depend: []
+
+libraries:
+  - com.zaxxer:HikariCP:7.1.0
+
 commands:
   powermob:
     description: Commands for managing power mobs
-    usage: /<command> [spawn|list|info|timers|give|reload|remove|config|spawnblocker|delete|help]
+    usage: /<command> [spawn|list|info|timers|give|reload|remove|config|spawnblocker|delete|update|populate|stats|help]
     permission: powermobs.command
 
 permissions:
@@ -29,6 +33,16 @@ permissions:
       powermobs.spawnblocker.list: true
       powermobs.spawnblocker.info: true
       powermobs.delete: true
+      powermobs.update: true
+      powermobs.populate: true
+      powermobs.stats.flush: true
+      powermobs.stats.clearplayerdata: true
+      powermobs.stats.clearpowermobdata: true
+      powermobs.stats.clearplayerpowermobdata: true
+      powermobs.stats.reloadcache: true
+      powermobs.stats.view: true
+      powermobs.stats.top: true
+      powermobs.stats.rank: true
 
   powermobs.spawn:
     description: Allows spawning power mobs
@@ -82,6 +96,50 @@ permissions:
     description: Allows deleting mob types from config
     default: op
 
+  powermobs.update:
+    description: Allows updating configs to newer format
+    default: op
+
+  powermobs.populate:
+    description: Allows populating config files with missing defaults
+    default: op
+
   powermobs.announce:
     description: Allows receiving PowerMobs spawn announcements
     default: true
+
+  powermobs.spawnkeys.use:
+    description: Allows using spawn keys
+    default: true
+
+  powermobs.stats.view:
+    description: Allows viewing player PowerMobs stats
+    default: op
+
+  powermobs.stats.top:
+    description: Allows viewing PowerMobs leaderboards
+    default: op
+
+  powermobs.stats.rank:
+    description: Allows viewing PowerMobs rank information
+    default: op
+
+  powermobs.stats.flush:
+    description: Allows forcing a stats database flush
+    default: op
+
+  powermobs.stats.clearplayerdata:
+    description: Allows clearing all stats for a player
+    default: op
+
+  powermobs.stats.clearpowermobdata:
+    description: Allows clearing all stats for a mob id
+    default: op
+
+  powermobs.stats.clearplayerpowermobdata:
+    description: Allows clearing one player's stats for one mob id
+    default: op
+
+  powermobs.stats.reloadcache:
+    description: Allows rebuilding/reloading stats cache from database
+    default: op

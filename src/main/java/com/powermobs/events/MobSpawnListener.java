@@ -23,7 +23,6 @@ public class MobSpawnListener implements Listener {
 
     private final PowerMobsPlugin plugin;
 
-
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (event.isCancelled()) {

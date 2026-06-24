@@ -3,6 +3,7 @@ package com.powermobs.mobs.equipment;
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.config.ParticleEffectConfig;
 import com.powermobs.config.SoundEffectConfig;
+import com.powermobs.mobs.PowerMob;
 import com.powermobs.mobs.equipment.items.Shape;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.*;
@@ -347,6 +348,12 @@ public class ItemEffectProcessor {
             case HEAL -> applyHealing(effect, target);
             case PURE_DAMAGE -> {
                 target.setHealth(Math.max(0, target.getHealth() - effect.getDamage()));
+                PowerMob powerMob = PowerMob.getFromEntity(plugin, target);
+                if (powerMob != null) {
+                    if (caster instanceof Player player) {
+                        plugin.getDamageTracker().registerSpecialDamage(player, powerMob, effect.getDamage());
+                    }
+                }
                 // Handle in damage events - store damage bonus
             }
             case IMMUNITY -> applyImmunity(effect, target);

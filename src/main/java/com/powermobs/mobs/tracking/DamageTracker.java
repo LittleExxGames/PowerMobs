@@ -2,6 +2,7 @@ package com.powermobs.mobs.tracking;
 
 import com.powermobs.PowerMobsPlugin;
 import com.powermobs.mobs.PowerMob;
+import com.powermobs.stats.CachedStats;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.projectiles.ProjectileSource;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,7 +53,6 @@ public class DamageTracker {
             // Check if damage was caused by a player ally (wolf, golem, etc.)
             Entity damager = getEntityDamager(event);
             if (isPlayerAlly(damager) && plugin.getConfigManager().isCountAllyDamage()) {
-                // Get the owner UUID
                 UUID ownerUuid = getAllyOwnerUuid(damager);
                 if (ownerUuid != null) {
                     // Add damage to the owner's total
@@ -65,8 +66,50 @@ public class DamageTracker {
 
         // Add damage to the player's total
         damageMap.merge(player.getUniqueId(), damage, Double::sum);
-        plugin.debug("Registered " + String.format("%.2f", damage) + " damage to mob " + mobUuid + " from " + player.getName(), "mob_combat");
+        CachedStats.updatePlayerStats(player.getUniqueId(), mob.getId(), 0, 0, damage, 0);
+        plugin.debug("Registered " + String.format("%.2f", damage) + " damage to mob " + mob.getId() + "    UUID: " + mobUuid + " from " + player.getName(), "mob_combat");
         plugin.debug("After adding damage, total damage map for mob " + mobUuid + ": " + formatDamageMapForDebug(damageMap), "mob_combat");
+    }
+
+    public void registerSpecialDamage(Player player, PowerMob mob, double damage) {
+        Map<UUID, Double> damageMap = mobDamageTracker.computeIfAbsent(mob.getEntityUuid(), k -> new HashMap<>());
+
+        damageMap.merge(player.getUniqueId(), damage, Double::sum);
+        CachedStats.updatePlayerStats(player.getUniqueId(), mob.getId(), 0, 0, damage, 0);
+
+        plugin.debug("Registered " + String.format("%.2f", damage) + " damage to mob " + mob.getId() + "    UUID: " + mob.getEntityUuid() + " from " + player.getName(), "mob_combat");
+    }
+
+    public void calculateMobDeathInvolvement(PowerMob mob, int include, double damagePercent){
+        UUID identifier = mob.getEntityUuid();
+        if (!mobDamageTracker.containsKey(identifier)) {
+            plugin.debug("Mob id: " + mob.getId() + "   UUID: " + identifier + " is not being tracked, so it cannot be qualified for drops", "drops");
+            return;
+        }
+        Map<UUID, Double> damageMap = mobDamageTracker.get(identifier);
+
+        double totalDamage = getTotalDamage(damageMap);
+        if (totalDamage <= 0.0) {
+            return;
+        }
+
+        double requiredFraction = damagePercent / 100.0;
+
+        List<Map.Entry<UUID, Double>> topPlayers = damageMap.entrySet().stream()
+                .filter(entry -> (entry.getValue() / totalDamage) >= requiredFraction)
+                .sorted(Map.Entry.<UUID, Double>comparingByValue().reversed())
+                .limit(include)
+                .toList();
+        for (Map.Entry<UUID, Double> entry : topPlayers){
+            CachedStats.updatePlayerStats(entry.getKey(), mob.getId(), 1, 0, 0, 0);
+        }
+        for (Map.Entry<UUID, Double> entry : damageMap.entrySet()){
+            CachedStats.updatePlayerStats(entry.getKey(), mob.getId(), 0, 0, 0, totalDamage);
+        }
+    }
+
+    public void calculatePlayerDeathInvolvement(PowerMob mob, Player player){
+        CachedStats.updatePlayerStats(player.getUniqueId(), mob.getId(), 0, 1, 0, 0);
     }
 
     private String formatDamageMapForDebug(Map<UUID, Double> damageMap) {
@@ -96,7 +139,6 @@ public class DamageTracker {
     public boolean hasPlayerDoneEnoughDamage(PowerMob mob, Player player) {
         UUID mobUuid = mob.getEntityUuid();
 
-        // If we're not tracking this mob, return false
         if (!mobDamageTracker.containsKey(mobUuid)) {
             plugin.debug("Mob " + mobUuid + " is not being tracked, so it cannot be qualified for drops", "drops");
             return false;
@@ -106,10 +148,8 @@ public class DamageTracker {
         double totalDamage = getTotalDamage(damageMap);
         double playerDamage = damageMap.getOrDefault(player.getUniqueId(), 0.0);
 
-        // Calculate the percentage of damage done by the player
         double percentage = (totalDamage > 0) ? (playerDamage / totalDamage) * 100.0 : 0.0;
 
-        // Check if it meets the requirement
         double required = plugin.getConfigManager().getPlayerDamageRequirement();
         boolean meetsRequirement = percentage >= required;
 

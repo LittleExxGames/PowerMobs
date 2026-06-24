@@ -58,11 +58,11 @@ public class ItemEffectListener implements Listener {
 
         if (attacker != null) {
             applyForItems(attacker, TriggerType.ON_HIT, attacker, victim);
-            applyForArmor(attacker, TriggerType.ON_HIT, attacker, victim); // CHANGED
+            applyForArmor(attacker, TriggerType.ON_HIT, attacker, victim);
         }
         if (victim != null) {
             applyForItems(victim, TriggerType.ON_HIT_TAKEN, victim, attacker);
-            applyForArmor(victim, TriggerType.ON_HIT_TAKEN, victim, attacker); // CHANGED
+            applyForArmor(victim, TriggerType.ON_HIT_TAKEN, victim, attacker);
         }
     }
 
@@ -113,7 +113,7 @@ public class ItemEffectListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPotionEffect(EntityPotionEffectEvent event) {
         if (!(event.getEntity() instanceof LivingEntity living)) return;
-        if (event.getNewEffect() == null) return; // nothing added/changed
+        if (event.getNewEffect() == null) return;
 
         PotionEffectType type = event.getNewEffect().getType();
         int levelOneBased = event.getNewEffect().getAmplifier() + 1;

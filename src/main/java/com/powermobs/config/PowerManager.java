@@ -67,6 +67,10 @@ public class PowerManager {
     @Getter
     private double playerDamageRequirement;
     @Getter
+    private int playerInvolvementCount;
+    @Getter
+    private double playerInvolvementCountPercentage;
+    @Getter
     private boolean countAllyDamage;
     @Getter
     private RandomMobConfig randomMobConfig;
@@ -122,10 +126,10 @@ public class PowerManager {
             this.debugItemEffects = settings.getBoolean("debug-item-effects", true);
             this.debugSpawnBlockers = settings.getBoolean("debug-spawn-blockers", true);
             this.debugSaveAndLoad = settings.getBoolean("debug-save-and-load", true);
-            this.spawnChance = settings.getDouble("spawn-chance", 0.1);
+            this.spawnChance = Math.max(settings.getDouble("spawn-chance", 0.1), 0);
             this.spawnAnnouncements = settings.getBoolean("spawn-announcements", true);
             this.spawnAnnouncementMessage = settings.getString("spawn-announcement-message", "&c[PowerMobs] &6A &r%mob% &6has spawned nearby!");
-            this.spawnAnnouncementRange = settings.getInt("spawn-announcement-range", 50);
+            this.spawnAnnouncementRange = Math.max(settings.getInt("spawn-announcement-range", 50), 0);
             this.spawnEffect = settings.getBoolean("spawn-effect", true);
             this.showNames = settings.getBoolean("show-names", true);
 
@@ -133,7 +137,7 @@ public class PowerManager {
             if (spawnTimerSection != null) {
                 this.spawnTimersEnabled = spawnTimerSection.getBoolean("enabled", true);
                 this.spawnLocationBased = spawnTimerSection.getBoolean("location-based", false);
-                this.locationDistance = spawnTimerSection.getInt("distance", 300);
+                this.locationDistance = Math.max(spawnTimerSection.getInt("distance", 300), 0);
                 this.itemBypass = spawnTimerSection.getBoolean("item-bypass", true);
                 this.spawnerBypass = spawnTimerSection.getBoolean("spawner-bypass", false);
             } else {
@@ -143,11 +147,13 @@ public class PowerManager {
                 this.itemBypass = true;
                 this.spawnerBypass = false;
             }
+            this.playerInvolvementCount = Math.max(settings.getInt("player-involvement-count", 3), 0);
+            this.playerInvolvementCountPercentage = Math.max(settings.getDouble("player-involvement-count-percentage", 0.5), 0);
 
             // Load loot drop requirements
             ConfigurationSection lootSection = settings.getConfigurationSection("loot-requirements");
             if (lootSection != null) {
-                this.playerDamageRequirement = lootSection.getDouble("player-damage-percentage", 50.0);
+                this.playerDamageRequirement = Math.max(lootSection.getDouble("player-damage-percentage", 50.0), 0);
                 this.countAllyDamage = lootSection.getBoolean("count-ally-damage", true);
             } else {
                 // Default values
@@ -355,5 +361,9 @@ public class PowerManager {
             this.plugin.debug("Save already in progress", "save_and_load");
         }
         return saveInProgress;
+    }
+
+    public void appendMissingDefaults(int maxDepth) {
+        new FileConfigManager(plugin, "config.yml").appendMissingDefaults(maxDepth);
     }
 }

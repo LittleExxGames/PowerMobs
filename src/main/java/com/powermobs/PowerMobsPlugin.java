@@ -14,6 +14,8 @@ import com.powermobs.mobs.equipment.EquipmentManager;
 import com.powermobs.mobs.equipment.ItemEffectProcessor;
 import com.powermobs.mobs.timing.SpawnTimerManager;
 import com.powermobs.mobs.tracking.DamageTracker;
+import com.powermobs.stats.CachedStats;
+import com.powermobs.stats.StatsManager;
 import lombok.Getter;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,6 +53,9 @@ public class PowerMobsPlugin extends JavaPlugin {
     private EquipmentManager equipmentManager;
 
     @Getter
+    private StatsManager statsManager;
+
+    @Getter
     private GUIManager guiManager;
 
     @Getter
@@ -81,21 +86,22 @@ public class PowerMobsPlugin extends JavaPlugin {
         this.spawnBlockerManager = new SpawnBlockerManager(this);
         this.spawnKeyManager = new SpawnKeyManager(this);
         this.equipmentManager = new EquipmentManager(this);
+        this.statsManager = new StatsManager(this);
         this.itemEffectManager = new CustomItemEffectManager(this);
         this.itemEffectProcessor = new ItemEffectProcessor(this);
         this.powerMobManager = new PowerMobManager(this);
         this.guiManager = new GUIManager(this);
 
-
         // Register events
         getServer().getPluginManager().registerEvents(new DamageTrackingListener(this), this);
         getServer().getPluginManager().registerEvents(new MobSpawnListener(this), this);
         getServer().getPluginManager().registerEvents(new MobDeathListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerConnectionListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerDeathListener(this), this);
         getServer().getPluginManager().registerEvents(new ConfigGUIListener(this), this);
         getServer().getPluginManager().registerEvents(new ItemEffectListener(this), this);
         getServer().getPluginManager().registerEvents(new SpawnBlockerListener(this), this);
         getServer().getPluginManager().registerEvents(new SpawnKeyListener(this), this);
-
 
         // Register commands
         PluginCommand command = Objects.requireNonNull(getCommand("powermob"));
@@ -108,6 +114,9 @@ public class PowerMobsPlugin extends JavaPlugin {
         this.spawnBlockerManager.loadBlockers();
         this.spawnKeyManager.loadKeys();
         this.equipmentManager.loadEquipment();
+        this.statsManager.initDatabase();
+        this.statsManager.loadGlobalMobTotalsIntoCache();
+        this.statsManager.startSaveTask();
 
         // Start cleanup task AFTER everything is loaded
         this.spawnBlockerManager.startCleanupTask();
@@ -118,7 +127,6 @@ public class PowerMobsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Clean up any active power mobs
         if (this.powerMobManager != null) {
             this.powerMobManager.cleanup();
         }
@@ -129,6 +137,11 @@ public class PowerMobsPlugin extends JavaPlugin {
 
         if (this.spawnBlockerManager != null) {
             this.spawnBlockerManager.saveActiveBlockersToDisk();
+        }
+
+        if (this.statsManager != null) {
+            this.statsManager.saveAllActiveCaches(false);
+            this.statsManager.closeConnection();
         }
 
         getServer().getScheduler().cancelTasks(this);

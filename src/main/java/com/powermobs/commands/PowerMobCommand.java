@@ -6,10 +6,10 @@ import com.powermobs.config.PowerMobConfig;
 import com.powermobs.config.SpawnBlockerManager;
 import com.powermobs.mobs.PowerMob;
 import com.powermobs.mobs.SpawnContext;
+import com.powermobs.stats.CachedStats;
+import com.powermobs.stats.StatsManager;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -67,6 +67,8 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                 return updateConfig(sender);
             case "populate":
                 return handlePopulate(sender, args);
+            case "stats":
+                return handleStats(sender, args);
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + args[0]);
                 sendHelp(sender);
@@ -134,6 +136,10 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatColor.YELLOW + "Adding missing spawn blocker settings and defaults to config...");
                 this.plugin.getSpawnBlockerManager().getSpawnBlockersConfig().appendMissingDefaults(2);
                 sender.sendMessage(ChatColor.YELLOW + "Updated spawn blocker settings to include missing configs and defaults!");
+                return true;
+            case "main":
+                sender.sendMessage(ChatColor.YELLOW + "Adding missing main settings and defaults to config...");
+                this.plugin.getConfigManager().appendMissingDefaults(2);
                 return true;
             default:
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand: " + args[0]);
@@ -1247,6 +1253,571 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
         return Collections.emptyList();
     }
 
+    private boolean handleStats(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sendStatsHelp(sender);
+            return true;
+        }
+
+        switch (args[1].toLowerCase()) {
+            case "view":
+                return handleStatsView(sender, args);
+            case "topkills":
+                return handleStatsTopKills(sender, args);
+            case "topallkills":
+                return handleStatsTopAllKills(sender, args);
+            case "topmaxdamage":
+                return handleStatsTopMaxDamage(sender, args);
+            case "topallmaxdamage":
+                return handleStatsTopAllMaxDamage(sender, args);
+            case "topdamage":
+                return handleStatsTopDamage(sender, args);
+            case "topalldamage":
+                return handleStatsTopAllDamage(sender, args);
+            case "topdeaths":
+                return handleStatsTopDeaths(sender, args);
+            case "topalldeaths":
+                return handleStatsTopAllDeaths(sender, args);
+            case "rank":
+                return handleStatsRank(sender, args);
+            case "clearplayerdata":
+                return handleStatsClearPlayerData(sender, args);
+            case "clearpowermobdata":
+                return handleStatsClearPowerMobData(sender, args);
+            case "clearplayerpowermobdata":
+                return handleStatsClearPlayerPowerMobData(sender, args);
+            case "flush":
+                return handleStatsFlush(sender);
+            case "reloadcache":
+                return handleStatsReloadCache(sender);
+            default:
+                sendStatsHelp(sender);
+                return true;
+        }
+    }
+
+    private boolean handleStatsView(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.view")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view stats.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats view <player> [powermob-id]");
+            return true;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        UUID playerUuid = target.getUniqueId();
+        StatsManager statsManager = plugin.getStatsManager();
+
+        statsManager.loadSpecificPlayerStats(playerUuid).whenComplete((statsMap, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load stats data: " + throwable.getMessage());
+                return;
+            }
+
+            String targetName = target.getName() != null ? target.getName() : playerUuid.toString();
+            sender.sendMessage(ChatColor.GREEN + "=== PowerMobs Stats Data for " + targetName + " ===");
+
+            if (args.length >= 4) {
+                String powerMobId = args[3];
+                CachedStats.MobStats stats = statsMap.get(powerMobId);
+                if (stats == null) {
+                    sender.sendMessage(ChatColor.GRAY + "No stats data recorded for power mob: " + powerMobId);
+                    return;
+                }
+
+                sender.sendMessage(ChatColor.YELLOW + "Power Mob: " + ChatColor.WHITE + powerMobId);
+                sender.sendMessage(ChatColor.YELLOW + "Kills: " + ChatColor.WHITE + stats.kills);
+                sender.sendMessage(ChatColor.YELLOW + "Deaths: " + ChatColor.WHITE + stats.deaths);
+                sender.sendMessage(ChatColor.YELLOW + "Max Damage: " + ChatColor.WHITE + (int) stats.maxDamage);
+                sender.sendMessage(ChatColor.YELLOW + "Total Damage: " + ChatColor.WHITE + (int) stats.totalDamage);
+                return;
+            }
+
+            if (statsMap.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats data recorded.");
+                return;
+            }
+
+            for (Map.Entry<String, CachedStats.MobStats> entry : statsMap.entrySet()) {
+                CachedStats.MobStats stats = entry.getValue();
+                sender.sendMessage(ChatColor.GOLD + entry.getKey() + ChatColor.GRAY
+                        + " | Kills: " + ChatColor.WHITE + stats.kills
+                        + ChatColor.GRAY + " | Deaths: " + ChatColor.WHITE + stats.deaths
+                        + ChatColor.GRAY + " | Max Dmg: " + ChatColor.WHITE + (int) stats.maxDamage
+                        + ChatColor.GRAY + " | Total Dmg: " + ChatColor.WHITE + (int) stats.totalDamage);
+            }
+        });
+
+        return true;
+    }
+
+    private boolean handleStatsTopKills(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topkills <mob-id> [limit]");
+            return true;
+        }
+
+        String mobId = args[2];
+        int limit = parseLimit(args, 3);
+        plugin.getStatsManager().getTopKillerToMob(mobId, limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top killers for " + mobId + " ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopAllKills(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topallkills [limit]");
+            return true;
+        }
+
+        int limit = parseLimit(args, 2);
+        plugin.getStatsManager().getTopKillerAcrossAllMobs(limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top killers across all Power Mobs ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopMaxDamage(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topmaxdamage <mob-id> [limit]");
+            return true;
+        }
+
+        String mobId = args[2];
+        int limit = parseLimit(args, 3);
+        plugin.getStatsManager().getTopMaxDamageToMob(mobId, limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top max damage for " + mobId + " ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopAllMaxDamage(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topallmaxdamage [limit]");
+            return true;
+        }
+
+        int limit = parseLimit(args, 2);
+        plugin.getStatsManager().getTopMaxDamageAcrossAllMobs(limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top max damage across all Power Mobs ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopDamage(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topkills <mob-id> [limit]");
+            return true;
+        }
+
+        String mobId = args[2];
+        int limit = parseLimit(args, 3);
+        plugin.getStatsManager().getTopDamageToMob(mobId, limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top Total Damage Across All Power Mobs ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopAllDamage(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topalltotaldamage [limit]");
+            return true;
+        }
+
+        int limit = parseLimit(args, 2);
+        plugin.getStatsManager().getTopDamageAcrossAllMobs(limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top total damage across all Power Mobs ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopDeaths(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topdeaths <mob-id> [limit]");
+            return true;
+        }
+
+        String mobId = args[2];
+        int limit = parseLimit(args, 3);
+        plugin.getStatsManager().getTopDeathsToMob(mobId, limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top Deaths to " + mobId + " ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsTopAllDeaths(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.top")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view leaderboards.");
+            return true;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats topalldeaths [limit]");
+            return true;
+        }
+
+        int limit = parseLimit(args, 2);
+        plugin.getStatsManager().getTopDeathsAcrossAllMobs(limit).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                sender.sendMessage(ChatColor.RED + "Failed to load leaderboard.");
+                return;
+            }
+
+            sender.sendMessage(ChatColor.GREEN + "=== Top deaths across all Power Mobs ===");
+            if (rows.isEmpty()) {
+                sender.sendMessage(ChatColor.GRAY + "No stats found.");
+                return;
+            }
+
+            int rank = 1;
+            for (StatsManager.LeaderboardEntry row : rows) {
+                OfflinePlayer player = Bukkit.getOfflinePlayer(row.playerUuid());
+                String name = player.getName() != null ? player.getName() : row.playerUuid().toString();
+                sender.sendMessage(ChatColor.GOLD + "#" + rank++
+                        + ChatColor.YELLOW + " " + name
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + (int) row.score());
+            }
+        });
+        return true;
+    }
+
+    private boolean handleStatsRank(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.rank")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to view stat ranks.");
+            return true;
+        }
+
+        if (args.length < 4) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats rank <player> <kills|deaths|damage|maxdamage>");
+            return true;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        UUID playerUuid = target.getUniqueId();
+        String stat = args[3].toLowerCase(Locale.ROOT);
+        String name = target.getName() != null ? target.getName() : playerUuid.toString();
+
+        switch (stat) {
+            case "kills":
+                plugin.getStatsManager().getPlayerKillsRank(playerUuid).whenComplete((rank, throwable) -> {
+                    if (throwable != null) {
+                        sender.sendMessage(ChatColor.RED + "Failed to load kills rank.");
+                        return;
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "=== PowerMobs Rank Data for " + name + " ===");
+                    sender.sendMessage(ChatColor.YELLOW + "Kills Rank: " + ChatColor.WHITE + rank);
+                });
+                return true;
+
+            case "deaths":
+                plugin.getStatsManager().getPlayerDeathsRank(playerUuid).whenComplete((rank, throwable) -> {
+                    if (throwable != null) {
+                        sender.sendMessage(ChatColor.RED + "Failed to load deaths rank.");
+                        return;
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "=== PowerMobs Rank Data for " + name + " ===");
+                    sender.sendMessage(ChatColor.YELLOW + "Deaths Rank: " + ChatColor.WHITE + rank);
+                });
+                return true;
+
+            case "damage":
+                plugin.getStatsManager().getPlayerDamageRank(playerUuid).whenComplete((rank, throwable) -> {
+                    if (throwable != null) {
+                        sender.sendMessage(ChatColor.RED + "Failed to load damage rank.");
+                        return;
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "=== PowerMobs Rank Data for " + name + " ===");
+                    sender.sendMessage(ChatColor.YELLOW + "Damage Rank: " + ChatColor.WHITE + rank);
+                });
+                return true;
+            case "maxdamage":
+                plugin.getStatsManager().getPlayerMaxDamageRank(playerUuid).whenComplete((rank, throwable) -> {
+                    if (throwable != null) {
+                        sender.sendMessage(ChatColor.RED + "Failed to load max damage rank.");
+                        return;
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "=== PowerMobs Rank Data for " + name + " ===");
+                    sender.sendMessage(ChatColor.YELLOW + "Max Damage Rank: " + ChatColor.WHITE + rank);
+                });
+                return true;
+            default:
+                sender.sendMessage(ChatColor.RED + "Invalid stat type: " + stat);
+                sender.sendMessage(ChatColor.RED + "Usage: /powermob stats rank <player> <kills|deaths|damage|maxdamage>");
+                return true;
+        }
+    }
+
+    private boolean handleStatsClearPlayerData(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.clearplayerdata")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to clear player stats data.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats clearplayerdata <player>");
+            return true;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        CachedStats.deletePlayer(target.getUniqueId());
+        sender.sendMessage(ChatColor.GREEN + "Cleared all PowerMobs stats data for " + target.getName() + ".");
+        return true;
+    }
+
+    private boolean handleStatsClearPowerMobData(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.clearpowermobdata")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to clear power mob stats data.");
+            return true;
+        }
+
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats clearpowermobdata <powermob-id>");
+            return true;
+        }
+
+        String powerMobId = args[2];
+        plugin.getStatsManager().clearAllSpecificMobData(powerMobId);
+        sender.sendMessage(ChatColor.GREEN + "Cleared all PowerMobs stats data for power mob id '" + powerMobId + "'.");
+        return true;
+    }
+
+    private boolean handleStatsClearPlayerPowerMobData(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("powermobs.stats.clearplayerpowermobdata")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to clear player power mob stats data.");
+            return true;
+        }
+
+        if (args.length < 4) {
+            sender.sendMessage(ChatColor.RED + "Usage: /powermob stats clearplayerpowermobdata <player> <powermob-id>");
+            return true;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        String powerMobId = args[3];
+
+        plugin.getStatsManager().clearSpecificMobData(target.getUniqueId(), powerMobId);
+        sender.sendMessage(ChatColor.GREEN + "Cleared PowerMobs stats data for " + target.getName()
+                + " on power mob id '" + powerMobId + "'.");
+        return true;
+    }
+
+    private boolean handleStatsFlush(CommandSender sender) {
+        if (!sender.hasPermission("powermobs.stats.flush")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to flush stats.");
+            return true;
+        }
+
+        plugin.getStatsManager().saveAllActiveCaches(true);
+        sender.sendMessage(ChatColor.GREEN + "Triggered asynchronous stats flush.");
+        return true;
+    }
+
+    private boolean handleStatsReloadCache(CommandSender sender) {
+        if (!sender.hasPermission("powermobs.stats.reloadcache")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to reload stats cache.");
+            return true;
+        }
+
+        plugin.getStatsManager().loadGlobalMobTotalsIntoCache();
+        sender.sendMessage(ChatColor.GREEN + "Triggered stats cache reload from database.");
+        return true;
+    }
+
+    private int parseLimit(String[] args, int index) {
+        if (args.length <= index) {
+            return 10;
+        }
+
+        try {
+            return Math.max(1, Math.min(100, Integer.parseInt(args[index])));
+        } catch (NumberFormatException exception) {
+            return 10;
+        }
+    }
+
+    private void sendStatsHelp(CommandSender sender) {
+        sender.sendMessage(ChatColor.GREEN + "PowerMobs Stats Commands:");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats view <player> [mob-id]" + ChatColor.GRAY + " - View PowerMobs stats data");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topkills <mob-id> [limit]" + ChatColor.GRAY + " - View top kill stats data for a power mob");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topdeaths <mob-id> [limit]" + ChatColor.GRAY + " - View top death stats data for a power mob");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topmaxdamage <mob-id> [limit]" + ChatColor.GRAY + " - View top max damage stats data for a power mob");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topdamage <mob-id> [limit]" + ChatColor.GRAY + " - View top total damage stats for a power mob");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topallkills [limit]" + ChatColor.GRAY + " - View top all time kill stats data against power mobs");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topalldeaths [limit]" + ChatColor.GRAY + " - View top all time death stats data against power mobs");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topallmaxdamage [limit]" + ChatColor.GRAY + " - View top all time max damage stats data against power mobs");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats topalldamage [limit]" + ChatColor.GRAY + " - View top all time total damage stats against power mobs");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats rank <player> <kills|deaths|maxdamage|damage>" + ChatColor.GRAY + " - View rank data for a specific stat");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats clearplayerdata <player>" + ChatColor.GRAY + " - Clear all player stats data");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats clearpowermobdata <mob-id>" + ChatColor.GRAY + " - Clear all power mob stats data");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats clearplayerpowermobdata <player> <mob-id>" + ChatColor.GRAY + " - Clear one player's power mob stats data");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats flush" + ChatColor.GRAY + " - Flush pending stats data to the database");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats reloadcache" + ChatColor.GRAY + " - Reload stats cache data from the database");
+    }
 
     /**
      * Sends help information to a command sender
@@ -1269,6 +1840,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GOLD + "/powermob populate <abilities|items|mobs|keys|blockers>" + ChatColor.GRAY + " - Populate the config with default data that isn't already there or configured");
         sender.sendMessage(ChatColor.GOLD + "/powermob update" + ChatColor.GRAY + " - Updates items to the latest configuration setup");
         sender.sendMessage(ChatColor.GOLD + "/powermob delete <mobID>" + ChatColor.GRAY + " - Deletes and de-registers a power mob");
+        sender.sendMessage(ChatColor.GOLD + "/powermob stats <view|topkills|topallkills|topdeaths|topalldeaths|topdamage|topalldamage|topmaxdamage|topallmaxdamage|rank|clearplayerdata|clearpowermobdata|clearplayerpowermobdata|flush|reloadcache>" + ChatColor.GRAY + " - View and manage stats database data");
         sender.sendMessage(ChatColor.GOLD + "/powermob help" + ChatColor.GRAY + " - Show this help message");
     }
 
@@ -1288,6 +1860,7 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
             completions.add("populate");
             completions.add("update");
             completions.add("delete");
+            completions.add("stats");
             completions.add("help");
 
             return filterCompletions(completions, args[0]);
@@ -1295,6 +1868,64 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
             List<String> comps = getSpawnBlockerTabCompletions(args);
             if (comps == null) return null;
             return filterCompletions(comps, args[args.length - 1]);
+        } else if (args[0].equalsIgnoreCase("stats")) {
+            if (args.length == 2) {
+                return filterCompletions(List.of(
+                        "view",
+                        "topkills",
+                        "topallkills",
+                        "topdeaths",
+                        "topalldeaths",
+                        "topdamage",
+                        "topalldamage",
+                        "topmaxdamage",
+                        "topallmaxdamage",
+                        "rank",
+                        "clearplayerdata",
+                        "clearpowermobdata",
+                        "clearplayerpowermobdata",
+                        "flush",
+                        "reloadcache"
+                ), args[1]);
+            } else if (args.length == 3) {
+                switch (args[1].toLowerCase()) {
+                    case "view":
+                    case "rank":
+                    case "clearplayerdata":
+                    case "clearplayerpowermobdata":
+                        return filterCompletions(
+                                this.plugin.getServer().getOnlinePlayers().stream()
+                                        .map(Player::getName)
+                                        .collect(Collectors.toList()),
+                                args[2]
+                        );
+                    case "topkills":
+                    case "topmaxdamage":
+                    case "topdeaths":
+                    case "clearpowermobdata":
+                        return filterCompletions(
+                                new ArrayList<>(this.plugin.getConfigManager().getPowerMobs().keySet()),
+                                args[2]
+                        );
+                    case "topdamage":
+                        return filterCompletions(List.of("10", "25", "50", "100"), args[2]);
+                }
+            } else if (args.length == 4) {
+                switch (args[1].toLowerCase()) {
+                    case "view":
+                    case "clearplayerpowermobdata":
+                        return filterCompletions(
+                                new ArrayList<>(this.plugin.getConfigManager().getPowerMobs().keySet()),
+                                args[3]
+                        );
+                    case "topkills":
+                    case "topmaxdamage":
+                    case "topdeaths":
+                        return filterCompletions(List.of("10", "25", "50", "100"), args[3]);
+                    case "rank":
+                        return filterCompletions(List.of("kills", "deaths", "damage"), args[3]);
+                }
+            }
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("spawn") || args[0].equalsIgnoreCase("info")) {
                 List<String> completions = new ArrayList<>(this.plugin.getConfigManager().getPowerMobs().keySet());
@@ -1319,6 +1950,15 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                 // Suggest available custom item IDs
                 List<String> itemIds = new ArrayList<>(this.plugin.getEquipmentManager().getAllEquipment().keySet());
                 return filterCompletions(itemIds, args[1]);
+            } else if (args[0].equalsIgnoreCase("populate")) {
+                List<String> completions = new ArrayList<>();
+                completions.add("abilities");
+                completions.add("items");
+                completions.add("mobs");
+                completions.add("keys");
+                completions.add("blockers");
+                completions.add("main");
+                return filterCompletions(completions, args[1]);
             }
         } else if (args.length == 3) {
             if (args[0].equalsIgnoreCase("timers") &&
@@ -1364,14 +2004,6 @@ public class PowerMobCommand implements CommandExecutor, TabCompleter {
                         .map(Player::getName)
                         .collect(Collectors.toList());
                 return filterCompletions(names, args[3]);
-            } else if (args[0].equalsIgnoreCase("populate")) {
-                List<String> completions = new ArrayList<>();
-                completions.add("abilities");
-                completions.add("items");
-                completions.add("mobs");
-                completions.add("keys");
-                completions.add("blockers");
-                return filterCompletions(completions, args[2]);
             }
 
         }

@@ -9,6 +9,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 
+import java.util.Objects;
+
 /**
  * Listener for damage and death events to track player damage
  */
@@ -26,21 +28,15 @@ public class DamageTrackingListener implements Listener {
             return;
         }
 
-        // Check if the entity is a power mob
         PowerMob powerMob = PowerMob.getFromEntity(plugin, victim);
         if (powerMob == null) {
             return;
         }
+        if (Objects.equals(powerMob.getId(), "summoned-minion")){
+            return;
+        }
 
-        // Register the damage with our tracker
         plugin.getDamageTracker().registerDamage(powerMob, event);
     }
 
-    /**
-     * Handles entity death events related to power mobs
-     */
-    @EventHandler
-    public void onEntityDeath(EntityDeathEvent event) {
-
-    }
 }

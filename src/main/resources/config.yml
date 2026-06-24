@@ -58,6 +58,22 @@ settings:
     # Whether to count damage done by player allies (like wolves)
     count-ally-damage: true
 
+  # Database settings for tracking power mob stats
+  database:
+    # Sqlite(default) or Mysql for working with external databases
+    type: sqlite
+    mysql:
+      host: localhost
+      port: 3306
+      database: minecraft
+      username: "root"
+      password: ""
+
+  # How many top players get the Power Mob kill counted for them who dealt damage to the mob
+  player-involvement-count: 3
+  # Percentage of damage needed to count as involved in the kill
+  player-involvement-count-percentage: 5.0
+
 # ===============================
 # Random Mob Configuration
 # ===============================
