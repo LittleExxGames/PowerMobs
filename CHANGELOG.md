@@ -1,3 +1,6 @@
+V1.3.4 - 7/21/2026
+- Fixed a bug making spawn keys spawn the first valid Power Mob in the id list instead of a random one.
+
 V1.3.3 - 6/23/2026
 - Fixed a bug where abilities were not reloading properly when calling the command /powermob reload. (Summon ability fixed)
 - Fixed default permissions for spawn key use to be enabled by default for everyone.

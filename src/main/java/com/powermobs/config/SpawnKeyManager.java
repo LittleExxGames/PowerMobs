@@ -277,7 +277,7 @@ public class SpawnKeyManager {
         }
         List<String> validIds = new ArrayList<>(config.spawnIds());
         Collections.shuffle(validIds);
-        for (String mobId : config.spawnIds()) {
+        for (String mobId : validIds) {
             IPowerMobConfig mob = (mobId.equalsIgnoreCase("random")) ? this.plugin.getConfigManager().getRandomMobConfig() : this.plugin.getConfigManager().getPowerMob(mobId);
             if (mob != null){
                 if (config.requireContext) {
@@ -295,8 +295,7 @@ public class SpawnKeyManager {
     }
 
     private void startAnnouncementSequence(Location location, SpawnKeyConfig config, String mobName, Runnable onComplete) {
-        List<String> lines = new ArrayList<>();
-        lines.addAll(config.announcementText());
+        List<String> lines = new ArrayList<>(config.announcementText());
 
         long periodTicks = Math.max(1L, (long) (config.announcementTextInterval() * 20.0));
 
